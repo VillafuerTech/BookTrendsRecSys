@@ -41,8 +41,16 @@ def build_matrix(df: pd.DataFrame, n_users: int, n_items: int, alpha: float) -> 
 
 def ndcg_at_k(model: AlternatingLeastSquares, interactions: sparse.csr_matrix, ground_truth: dict[int, set[int]], k: int) -> float:
     ndcgs = []
+    n_user_factors = int(getattr(model, "user_factors", np.empty((0, 0))).shape[0])
     for user, positives in ground_truth.items():
         if not positives:
+            continue
+        if user >= n_user_factors or user < 0:
+            # Skip users that the model cannot score. This can happen if the
+            # validation split still contains cold-start users even after the
+            # filtering performed in ``prepare_ground_truth``. ``implicit``
+            # raises ``IndexError`` when asked for recommendations for these
+            # users, so we proactively skip them here.
             continue
         recs, _ = model.recommend(user, interactions, N=k, filter_already_liked_items=False)
         dcg = 0.0
