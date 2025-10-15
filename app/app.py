@@ -17,6 +17,110 @@ if str(ROOT) not in sys.path:
 
 from src import utils
 
+
+def humanize_pct(x: float) -> str:
+    try:
+        if x is None:
+            return "–"
+        if x < 0.001:
+            return "<0.1%"
+        return f"{x:.1%}"
+    except Exception:
+        return "–"
+
+
+def load_metrics_json() -> dict:
+    p = Path("metrics/metrics.json")
+    if not p.exists():
+        return {}
+    try:
+        return json.loads(p.read_text())
+    except Exception:
+        return {}
+
+
+def compute_parity_gap(csv_path="metrics/parity.csv", metric="ndcg10") -> str:
+    p = Path(csv_path)
+    if not p.exists():
+        return "–"
+    try:
+        df = pd.read_csv(p)
+        df_m = df[df["metric"] == metric]
+        if df_m.empty:
+            return "–"
+        gap = df_m["value"].max() - df_m["value"].min()
+        return humanize_pct(gap)
+    except Exception:
+        return "–"
+
+
+def render_help_sidebar(metrics: dict, parity_gap: str):
+    p10 = humanize_pct(metrics.get("p10")) if metrics else "–"
+    r10 = humanize_pct(metrics.get("r10")) if metrics else "–"
+    ndcg10 = humanize_pct(metrics.get("ndcg10")) if metrics else "–"
+
+    st.sidebar.markdown("### ℹ️ About & How to read this page")
+    st.sidebar.markdown(
+        """
+**BookTrends** suggests books you may like **now**.  
+We show a short list (Top-10) and a couple of simple scores so you can trust the list.  
+Higher scores are better, and a **small fairness gap** means different groups get similar quality.
+        """
+    )
+    st.sidebar.caption(
+        f"Today’s snapshot — P@10: **{p10}**, R@10: **{r10}**, NDCG@10: **{ndcg10}**, Parity gap: **{parity_gap}**"
+    )
+
+
+def render_explainers(metrics: dict):
+    st.divider()
+    with st.expander("📊 What do these metrics mean?"):
+        st.markdown(
+            """
+- **Precision@10 (P@10)** — *Out of the 10 suggestions we show, how many were actually good fits for you?*  
+  Example: if 3 of the 10 were spot-on, **P@10 = 30%**.
+
+- **Recall@10 (R@10)** — *Out of all the good books out there for you, how many did we manage to include in the Top-10?*  
+  Example: if there are 20 books you'd love and we surfaced 4, **R@10 = 20%**.
+
+- **NDCG@10** — *A quality score that also cares about **order**: great picks near the top boost the score more.*  
+  It ranges from 0 to 100% (perfect ranking). Higher is better.
+            """
+        )
+        if metrics:
+            st.caption(
+                f"Current model snapshot — P@10: **{humanize_pct(metrics.get('p10'))}**, "
+                f"R@10: **{humanize_pct(metrics.get('r10'))}**, "
+                f"NDCG@10: **{humanize_pct(metrics.get('ndcg10'))}**."
+            )
+
+    with st.expander("🎚️ Genres & filters"):
+        st.markdown(
+            """
+- **Genre filter** narrows the list to a category (e.g., Fantasy, Romance).  
+- Choosing **All** shows any genre. Picking a specific genre may return **fewer** items.
+- If you see **“No recommendations available”**, try:
+  1) switch back to **All**,  
+  2) pick another genre, or  
+  3) try a different user.
+- We only show items we’re reasonably confident about after filtering.
+            """
+        )
+
+    with st.expander("⚖️ Fairness snapshot"):
+        st.markdown(
+            """
+This table compares the same metric across groups (like **regions** or **genres**).  
+A **small gap** between groups means the model treats groups similarly.  
+A **large gap** suggests one group gets better/worse recommendations and needs attention.
+            """
+        )
+        gap = compute_parity_gap(metric="ndcg10")
+        if gap != "–":
+            st.caption(f"Current ndcg10 gap across groups: **{gap}**.")
+        else:
+            st.caption("Current fairness gap data unavailable.")
+
 st.set_page_config(page_title="BookTrends Recommender", layout="wide")
 utils.ensure_dirs()
 
@@ -50,10 +154,7 @@ def load_model() -> tuple[np.ndarray, np.ndarray, dict[str, float]]:
 
 @st.cache_data
 def load_metrics() -> dict:
-    metrics_path = METRICS / "metrics.json"
-    if metrics_path.exists():
-        return json.loads(metrics_path.read_text(encoding="utf-8"))
-    return {}
+    return load_metrics_json()
 
 
 @st.cache_data
@@ -102,9 +203,14 @@ except FileNotFoundError:
     st.stop()
 metrics = load_metrics()
 parity_df = load_parity()
+parity_gap = compute_parity_gap(metric="ndcg10")
+
+render_help_sidebar(metrics, parity_gap)
 
 st.title("📚 BookTrends Recommendation System")
 st.markdown("Discover personalized book suggestions while monitoring quality and fairness.")
+
+render_explainers(metrics)
 
 col1, col2, col3 = st.columns([1, 1, 2])
 with col1:
@@ -126,14 +232,20 @@ if st.button("Recommend"):
         ]
         st.dataframe(results[display_cols].reset_index(drop=True))
 
-st.subheader("Evaluation Metrics")
+st.subheader("Evaluation Metrics 🛈")
+st.caption("🛈 Need a refresher? Open the “What do these metrics mean?” panel above.")
 if metrics:
-    metrics_table = {k: v for k, v in metrics.items() if k in {"p10", "r10", "ndcg10"}}
+    metrics_table = {
+        "P@10": humanize_pct(metrics.get("p10")),
+        "R@10": humanize_pct(metrics.get("r10")),
+        "NDCG@10": humanize_pct(metrics.get("ndcg10")),
+    }
     st.table(pd.DataFrame([metrics_table]))
 else:
     st.info("Run `make eval` to compute evaluation metrics.")
 
-st.subheader("Fairness Snapshot")
+st.subheader("Fairness Snapshot 🛈")
+st.caption("🛈 Curious about the gap? Expand “Fairness snapshot” above for context.")
 if not parity_df.empty:
     st.dataframe(parity_df)
 else:
