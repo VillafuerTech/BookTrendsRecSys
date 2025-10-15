@@ -57,10 +57,23 @@ def ndcg_at_k(model: AlternatingLeastSquares, interactions: sparse.csr_matrix, g
     return float(np.mean(ndcgs)) if ndcgs else 0.0
 
 
-def prepare_ground_truth(df: pd.DataFrame) -> dict[int, set[int]]:
+def prepare_ground_truth(
+    df: pd.DataFrame, allowed_users: set[int] | None = None
+) -> dict[int, set[int]]:
+    """Collect validation items keyed by user, optionally filtering users.
+
+    ALS can only score users that were present during training. Some validation
+    rows may belong to cold-start users which would otherwise raise an index
+    error when we ask the model for recommendations. By skipping those users we
+    evaluate the model only where factors exist.
+    """
+
     truth: dict[int, set[int]] = {}
     for row in df.itertuples():
-        truth.setdefault(int(row.user_idx), set()).add(int(row.item_idx))
+        user = int(row.user_idx)
+        if allowed_users is not None and user not in allowed_users:
+            continue
+        truth.setdefault(user, set()).add(int(row.item_idx))
     return truth
 
 
@@ -70,7 +83,8 @@ def sweep(train_df: pd.DataFrame, val_df: pd.DataFrame, args: argparse.Namespace
 
     interactions = build_matrix(train_df, n_users, n_items, alpha=1.0)
     user_items = interactions.T.tocsr()
-    ground_truth = prepare_ground_truth(val_df)
+    train_users = set(train_df["user_idx"].astype(int).unique())
+    ground_truth = prepare_ground_truth(val_df, allowed_users=train_users)
 
     best_score = -np.inf
     best_model: AlternatingLeastSquares | None = None
