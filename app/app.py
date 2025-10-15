@@ -30,9 +30,9 @@ def load_lookup_tables() -> tuple[pd.DataFrame, pd.DataFrame]:
     books = pd.read_csv(PROC / "books.csv") if (PROC / "books.csv").exists() else pd.DataFrame()
     users = pd.read_csv(PROC / "users.csv") if (PROC / "users.csv").exists() else pd.DataFrame()
     if not books.empty and "item_idx" in books.columns:
-        books = books.set_index("item_idx", drop=False)
+        books = books.set_index("item_idx")
     if not users.empty and "user_idx" in users.columns:
-        users = users.set_index("user_idx", drop=False)
+        users = users.set_index("user_idx")
     return books, users
 
 
@@ -83,9 +83,12 @@ def recommend(
     top_idx = top_idx[np.argsort(scores[top_idx])[::-1]]
     recs = pd.DataFrame({"item_idx": top_idx, "score": scores[top_idx]})
     if not books.empty:
-        recs = recs.merge(books, on="item_idx", how="left")
-        if genre and genre != "All":
-            recs = recs[recs["primary_genre"].fillna("Unknown") == genre]
+        enriched = recs.join(books, on="item_idx", how="left")
+        if "title" in enriched.columns:
+            enriched = enriched[enriched["title"].notna() & (enriched["title"].astype(str).str.strip() != "")]
+        if genre and genre != "All" and "primary_genre" in enriched.columns:
+            enriched = enriched[enriched["primary_genre"].fillna("Unknown") == genre]
+        recs = enriched.reset_index(drop=True)
     if not users.empty and user_identifier in users.index:
         recs["user_region"] = users.loc[user_identifier, "region"]
     return recs.head(k)
