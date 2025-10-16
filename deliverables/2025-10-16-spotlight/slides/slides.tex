@@ -1,0 +1,291 @@
+\documentclass[aspectratio=169,11pt]{beamer}
+
+% ---------- Theme (simple, readable) ----------
+\usetheme{Madrid}
+\usecolortheme{default}
+\beamertemplatenavigationsymbolsempty
+\setbeamertemplate{footline}[frame number]
+\setbeamersize{text margin left=6mm, text margin right=6mm}
+
+% ---------- Basics ----------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage{ifthen}
+\usepackage{hyperref}
+
+% ---------- Links ----------
+\hypersetup{
+  colorlinks=true,
+  urlcolor=blue,
+  linkcolor=black
+}
+
+% ---------- Figure search paths ----------
+\graphicspath{
+  {../../../figs/eda/}%
+  {../../../../figs/eda/}%
+  {../../figs/eda/}%
+  {../figs/eda/}%
+  {figs/eda/}%
+}
+
+% ---------- ULTRA-SAFE include (works even if file missing) ----------
+\makeatletter
+\newcommand{\safeinclude}[2][\linewidth]{%
+  \begingroup
+  \edef\BT@file{\detokenize{#2}}% freeze tokens (spaces, ~, underscores, etc.)
+  \IfFileExists{\BT@file}{%
+    \includegraphics[width=#1]{\BT@file}%
+  }{%
+    \setlength{\fboxsep}{1pt}%
+    \makebox[#1][c]{\fbox{\strut\footnotesize Missing figure: \texttt{\BT@file}}}%
+  }%
+  \endgroup
+}
+\makeatother
+
+% ---------- Project Macros (keep for appendix / backup) ----------
+\newcommand{\METP}{0.0240\%}   % Precision@10
+\newcommand{\METR}{0.0204\%}   % Recall@10
+\newcommand{\METN}{0.0249\%}   % NDCG@10
+\newcommand{\METV}{0.0148\%}   % Validation NDCG@10
+\newcommand{\HPRank}{64}
+\newcommand{\HPReg}{0.05}
+\newcommand{\HPAlpha}{20}
+\newcommand{\HPIters}{10}
+\newcommand{\GapRegion}{0.0052 pp}
+\newcommand{\GapGenre}{0.0786 pp}
+
+% ---------- Title ----------
+\title{\textbf{BookTrendsRecSys}}
+\subtitle{Helping readers pick their next book --- fast, fair, and useful}
+\author{Workshop 2}
+\institute{}
+\date{\today}
+
+\begin{document}
+
+% ================================================================
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% ================================================================
+\begin{frame}{Agenda}
+\begin{itemize}
+  \item The problem we solve
+  \item What you get (benefits in plain language)
+  \item Quick demo preview
+  \item Trust \& fairness --- in simple terms
+  \item Where this fits today
+  \item What is next and how to try it
+\end{itemize}
+\end{frame}
+
+% ================================================================
+\begin{frame}{The Problem}
+\begin{itemize}
+  \item \textbf{Too many options}: for most readers, choosing a next book takes time.
+  \item \textbf{Not sure what to trust}: ratings are messy and popularity can be misleading.
+  \item \textbf{Staff time is limited}: librarians and curators need quick shortlists.
+\end{itemize}
+\end{frame}
+
+% ================================================================
+\begin{frame}{Our Promise}
+\begin{itemize}
+  \item \textbf{A clean Top-10 list} per user --- titles you can actually act on.
+  \item \textbf{At a glance insights}: why these books appear (based on past likes).
+  \item \textbf{Fair experience}: we watch for gaps across regions and genres.
+\end{itemize}
+\end{frame}
+
+% ================================================================
+\begin{frame}{What You Get (Benefits)}
+\begin{itemize}
+  \item \textbf{Save time}: fewer clicks, faster choices.
+  \item \textbf{Better fit}: suggestions follow what the reader enjoyed before.
+  \item \textbf{Explainable}: simple visuals to see patterns in ratings.
+  \item \textbf{Portable}: runs as a small app; no special hardware needed.
+\end{itemize}
+\end{frame}
+
+% ================================================================
+\begin{frame}{One-Minute View of How It Works}
+\begin{block}{Behind the scenes}
+  \small Your past ratings $\rightarrow$ we learn look-alike tastes $\rightarrow$ score many books $\rightarrow$ show the Top-10.\par
+\end{block}
+\begin{itemize}
+  \item Think of it as ``people who liked X also liked Y'' made practical.
+  \item If the list is empty, we fall back to helpful, popular picks.
+\end{itemize}
+\end{frame}
+
+% ================================================================
+\begin{frame}{Demo Preview}
+\begin{columns}[T,onlytextwidth]
+\column{0.5\textwidth}
+\centering
+\safeinclude[0.95\linewidth]{Average Rating Distribution.png}
+
+\scriptsize Ratings at a glance
+\column{0.5\textwidth}
+\centering
+\safeinclude[0.95\linewidth]{avg_rating_top10_most_rated.png}
+
+\scriptsize Popular vs. quality overview
+\end{columns}
+\medskip
+\centering
+\safeinclude[0.8\linewidth]{Word Cloud of Book Titles.png}
+
+\scriptsize Titles that frequently surface
+\end{frame}
+
+% ================================================================
+\begin{frame}{Fairness \& Trust}
+\begin{itemize}
+  \item \textbf{Goal}: similar experience for readers in different groups.
+  \item \textbf{What we check}: how often the list is useful across regions or genres.
+  \item \textbf{Today}: small gaps; we keep monitoring as data changes.
+\end{itemize}
+\medskip
+\centering
+\safeinclude[0.8\linewidth]{parity_region_bar.png}
+\end{frame}
+
+% ================================================================
+\begin{frame}{Who Benefits}
+\begin{itemize}
+  \item \textbf{Readers}: quick, relevant ideas when they open the app.
+  \item \textbf{Librarians/Curators}: ready-to-share shortlists.
+  \item \textbf{Program managers}: basic fairness snapshot without extra tooling.
+\end{itemize}
+\end{frame}
+
+% ================================================================
+\begin{frame}{Where It Fits}
+\begin{itemize}
+  \item \textbf{Front page module}: ``Because you liked...'' Top-10.
+  \item \textbf{Kiosk/library desk}: fast suggestions during patron support.
+  \item \textbf{Newsletter picks}: plug the list into monthly recommendations.
+\end{itemize}
+\end{frame}
+
+% ================================================================
+\begin{frame}{Limitations}
+\begin{itemize}
+  \item Works best if the reader has \textbf{some} rating history.
+  \item Sparse genres may need \textbf{fallback} to popularity.
+  \item We focus on relevance first; \textbf{deep explanations} are in progress.
+\end{itemize}
+\end{frame}
+
+% ================================================================
+\begin{frame}{What Is Next}
+\begin{itemize}
+  \item \textbf{Smarter cold-start}: better picks for new users.
+  \item \textbf{Genre-aware fallback}: keep variety while staying relevant.
+  \item \textbf{Simple reasons}: short labels like ``Because you liked \emph{Dune}''.
+\end{itemize}
+\end{frame}
+
+% ================================================================
+\begin{frame}{How to Try It}
+\begin{itemize}
+  \item Open the app, enter a user ID, and (optionally) a genre.
+  \item Review the Top-10 and the simple insights view.
+  \item Share feedback: did this save time? did it feel relevant?
+\end{itemize}
+\end{frame}
+
+% ================================================================
+\begin{frame}{Thank You}
+\begin{itemize}
+  \item Questions and ideas welcome.
+  \item Want a short pilot? We can set one up quickly.
+\end{itemize}
+\end{frame}
+
+% ===================== APPENDIX (TECHNICAL) =====================
+\appendix
+
+% ================================================================
+\begin{frame}{Quick Evaluation Snapshot (Appendix)}
+\begin{itemize}
+  \item Precision@10: \METP \quad Recall@10: \METR \quad NDCG@10: \METN
+  \item Validation NDCG@10: \METV
+  \item Region gap (NDCG@10): \GapRegion{} \quad Genre gap: \GapGenre{}
+\end{itemize}
+\end{frame}
+
+% ================================================================
+\begin{frame}{Under the Hood (Appendix)}
+\begin{itemize}
+  \item Data: public ratings; train/validation split.
+  \item Model: implicit ALS (\texttt{rank}=\HPRank{}, \texttt{reg}=\HPReg{}, \texttt{alpha}=\HPAlpha{}, \texttt{iters}=\HPIters{}).
+  \item App: small Streamlit front end with a simple insights tab.
+\end{itemize}
+\end{frame}
+
+% ================================================================
+\begin{frame}{Extra Visuals (Appendix)}
+\begin{columns}[T,onlytextwidth]
+\column{0.5\textwidth}
+\centering
+\safeinclude[0.95\linewidth]{books_published_per_year.png}
+
+\scriptsize Books per year
+\column{0.5\textwidth}
+\centering
+\safeinclude[0.95\linewidth]{books_by_language.png}
+
+\scriptsize Top languages
+\end{columns}
+\medskip
+\centering
+\safeinclude[0.7\linewidth]{long_tail_coverage.png}
+
+\scriptsize Long-tail coverage
+\end{frame}
+
+% ================================================================
+\begin{frame}{(Backup) Ranking Metrics --- Formulas}
+\footnotesize
+For user \(u\) with ground truth \(G_u\) and top-\(K\) list \(R_u=[i_1,\dots,i_K]\):
+\[
+\mathrm{P@K}=\frac{1}{|U|}\sum_{u}\frac{|R_u\cap G_u|}{K},\quad
+\mathrm{R@K}=\frac{1}{|U|}\sum_{u}\frac{|R_u\cap G_u|}{|G_u|}
+\]
+\[
+\mathrm{DCG@K}(u)=\sum_{j=1}^{K}\frac{\mathbf{1}[i_j\in G_u]}{\log_2(j+1)},\quad
+\mathrm{NDCG@K}=\frac{1}{|U|}\sum_{u}\frac{\mathrm{DCG@K}(u)}{\mathrm{IDCG@K}(u)}
+\]
+\end{frame}
+
+% ================================================================
+\begin{frame}[fragile]{(Backup) Minimal File Map}
+\scriptsize
+\begin{verbatim}
+/scripts
+|-- get_rating_of_users.py
+|-- get_rating_of_books.py
+|-- build_goodreads_dataset.py
+|-- count_books.py
+`-- goodreads_dataset.csv
+/src
+|-- data_prep.py  |-- als_train.py
+|-- eval_ranking.py  |-- parity.py
+/figs/eda, /models, /metrics, /data/processed
+\end{verbatim}
+\end{frame}
+
+\end{document}
+

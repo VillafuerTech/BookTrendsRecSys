@@ -1,0 +1,14 @@
+\frametitle{(Backup) Minimal File Map}
+\scriptsize
+\begin{verbatim}
+/scripts
+|-- get_rating_of_users.py
+|-- get_rating_of_books.py
+|-- build_goodreads_dataset.py
+|-- count_books.py
+`-- goodreads_dataset.csv
+/src
+|-- data_prep.py  |-- als_train.py
+|-- eval_ranking.py  |-- parity.py
+/figs/eda, /models, /metrics, /data/processed
+\end{verbatim}
