@@ -5,7 +5,7 @@ import json
 import pickle
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Iterable, Optional
 
 import numpy as np
 import pandas as pd
@@ -34,6 +34,77 @@ def load_csv(path: Path) -> pd.DataFrame:
         return pd.read_csv(path)
     except Exception:
         return pd.DataFrame()
+
+
+def _first_existing(paths: Iterable[Path]) -> Optional[Path]:
+    for path in paths:
+        if path.exists():
+            return path
+    return None
+
+
+def _coerce_int(value: object) -> Optional[int]:
+    if value is None:
+        return None
+    if isinstance(value, (int, np.integer)):
+        return int(value)
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    if isinstance(value, str):
+        cleaned = value.strip().replace(",", "")
+        if not cleaned:
+            return None
+        try:
+            return int(float(cleaned))
+        except ValueError:
+            return None
+    return None
+
+
+def _coerce_float01(value: object) -> Optional[float]:
+    if value is None:
+        return None
+    if isinstance(value, (int, float, np.floating)):
+        return float(value)
+    if isinstance(value, str):
+        cleaned = value.strip()
+        if not cleaned:
+            return None
+        is_percent = cleaned.endswith("%")
+        if is_percent:
+            cleaned = cleaned[:-1].strip()
+        cleaned = cleaned.replace(",", "")
+        try:
+            numeric = float(cleaned)
+        except ValueError:
+            return None
+        return numeric / 100.0 if is_percent else numeric
+    return None
+
+
+@st.cache_data(show_spinner=False)
+def load_eda_summary() -> tuple[dict[str, object], bool]:
+    app_dir = Path(__file__).resolve().parent
+    candidates = [
+        (app_dir / ".." / "data" / "processed" / "eda_summary.json").resolve(),
+        (ROOT / "data" / "processed" / "eda_summary.json").resolve(),
+        (Path.cwd() / "data" / "processed" / "eda_summary.json").resolve(),
+        (Path(__file__).resolve().parent / ".." / "data" / "processed" / "eda_summary.json").resolve(),
+    ]
+    source = _first_existing(candidates)
+    if source is None:
+        return {}, False
+
+    data = load_json(source)
+    if not isinstance(data, dict):
+        data = {}
+
+    summary: dict[str, object] = dict(data)
+    summary["n_books"] = _coerce_int(summary.get("n_books"))
+    summary["n_users"] = _coerce_int(summary.get("n_users"))
+    summary["n_interactions"] = _coerce_int(summary.get("n_interactions"))
+    summary["sparsity"] = _coerce_float01(summary.get("sparsity"))
+    return summary, True
 
 
 def humanize_pct(x) -> str:
@@ -215,7 +286,9 @@ def render_recommendations_tab(
 def render_insights_tab():
     st.subheader("What the data looks like")
 
-    eda_summary = load_json(DATA_PROC / "eda_summary.json")
+    eda_summary, found = load_eda_summary()
+    if not found:
+        st.caption("[missing] eda_summary.json not found in expected locations.")
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Books", humanize_int(eda_summary.get("n_books")))
