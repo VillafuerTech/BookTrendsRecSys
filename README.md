@@ -10,6 +10,29 @@ BookTrends RecSys is a lightweight end-to-end recommender system pipeline that p
 4. `make train && make eval && make parity`
 5. `make app`
 
+## Data Collection
+
+Use the Goodreads crawlers to bootstrap training data from public review
+pages:
+
+1. Populate `src/ingest/assets/seed_books.csv` with a header row that
+   includes `book_id` (optionally add `title`).
+2. `make crawl_books` downloads reviews into
+   `data/raw/reviews/goodreads_reviews_<book_id>.json` while respecting
+   retries, pagination and resume support.
+3. `make crawl_users` loads the collected reviews, identifies unique
+   reviewers, and fetches their rating history into
+   `data/raw/users/goodreads_ratings_<user_id>.json`.
+4. `make count_books` builds coverage metrics in
+   `data/interim/book_counts.csv` (columns: `book_slug,count`).
+5. `make build_dataset` merges all user histories into
+   `data/processed/goodreads_dataset.csv` with columns
+   `userid,bookid,rating` sorted deterministically.
+
+Each script logs progress to `logs/collect.log` and stdout, supports
+configurable delays and user agents, and exits cleanly when run on empty
+directories for dry-run validation.
+
 ## Metrics Snapshot
 
 The latest ranking metrics are written to `metrics/metrics.json`. After running `make eval` you can inspect results via:

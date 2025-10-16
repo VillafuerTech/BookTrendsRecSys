@@ -6,3 +6,8 @@ implicit
 pyarrow
 matplotlib
 streamlit
+requests
+urllib3
+beautifulsoup4
+lxml
+tqdm
