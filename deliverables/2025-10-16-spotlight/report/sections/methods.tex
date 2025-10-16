@@ -1,0 +1,6 @@
+\section{Methods}
+We adopt the Hu--Koren--Volinsky alternating least squares (ALS) algorithm for implicit feedback, factorizing the user--item confidence matrix into latent vectors of dimension \rankParam. Each iteration alternates between solving regularized normal equations for users and items while weighting observations by confidence $c_{ui} = 1 + \alphaParam \cdot r_{ui}$ derived from implicit signals $r_{ui}$. The optimization objective minimizes
+\begin{equation}
+    \min_{X,Y} \sum_{u,i} c_{ui}\left(p_{ui} - x_u^\top y_i\right)^2 + \lambda \left(\lVert X \rVert_F^2 + \lVert Y \rVert_F^2\right),
+\end{equation}
+where $p_{ui}$ is a binary preference indicator and $\lambda=\regParam$ controls overfitting. We perform \itersParam{} coordinated sweeps, leveraging preconditioned conjugate gradient solvers and cached Gram matrices to scale to millions of observations while preserving tractable training times.

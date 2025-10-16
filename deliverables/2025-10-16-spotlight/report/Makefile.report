@@ -1,0 +1,13 @@
+.PHONY: report-data report report-all clean-report
+
+report-data:
+	PYTHONPATH=../../.. python -m deliverables.2025-10-16-spotlight.report.scripts.build_report_assets
+
+report: report-data
+	latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=. -jobname=BookTrendsRecSys_Technical_Report main.tex
+
+report-all: report
+
+clean-report:
+	latexmk -C -outdir=. -jobname=BookTrendsRecSys_Technical_Report main.tex
+	rm -f auto/*.tex
