@@ -5,7 +5,7 @@ import json
 import pickle
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Iterable, Optional
 
 import numpy as np
 import pandas as pd
@@ -20,6 +20,94 @@ from src import utils
 FIGS = Path("figs/eda")
 DATA_PROC = Path("data/processed")
 METRICS_DIR = Path("metrics")
+
+
+def _first_existing(paths: Iterable[Path]) -> Optional[Path]:
+    for path in paths:
+        if path.exists():
+            return path
+    return None
+
+
+def _to_int(value) -> Optional[int]:
+    if value is None:
+        return None
+    if isinstance(value, (int, np.integer)):
+        return int(value)
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    if isinstance(value, str):
+        cleaned = value.strip().replace(",", "")
+        if cleaned:
+            try:
+                return int(float(cleaned))
+            except ValueError:
+                return None
+    return None
+
+
+def _to_float01(value) -> Optional[float]:
+    if value is None:
+        return None
+    if isinstance(value, (float, np.floating, int, np.integer)):
+        return float(value)
+    if isinstance(value, str):
+        cleaned = value.strip()
+        if not cleaned:
+            return None
+        is_percent = cleaned.endswith("%")
+        if is_percent:
+            cleaned = cleaned[:-1]
+        cleaned = cleaned.replace(",", "")
+        try:
+            numeric = float(cleaned)
+        except ValueError:
+            return None
+        return numeric / 100 if is_percent else numeric
+    return None
+
+
+@st.cache_data(show_spinner=False)
+def load_eda_summary() -> dict:
+    here = Path(__file__).resolve()
+    app_dir = here.parent
+    candidate_paths = [
+        (app_dir / ".." / "data" / "processed" / "eda_summary.json").resolve(),
+        (ROOT / "data" / "processed" / "eda_summary.json").resolve(),
+        (Path.cwd() / "data" / "processed" / "eda_summary.json").resolve(),
+        (here.parent / "../data/processed/eda_summary.json").resolve(),
+    ]
+    unique_candidates: list[Path] = []
+    seen = set()
+    for path in candidate_paths:
+        if path not in seen:
+            unique_candidates.append(path)
+            seen.add(path)
+
+    eda_path = _first_existing(unique_candidates)
+    if not eda_path:
+        st.caption("[missing] eda_summary.json not found in expected locations.")
+        return {
+            "n_books": None,
+            "n_users": None,
+            "n_interactions": None,
+            "sparsity": None,
+        }
+
+    data = load_json(eda_path)
+    result = dict(data)
+    for key in ("n_books", "n_users", "n_interactions"):
+        if key in result:
+            coerced = _to_int(result[key])
+            result[key] = coerced if coerced is not None else result[key]
+        else:
+            result[key] = None
+    if "sparsity" in result:
+        coerced = _to_float01(result["sparsity"])
+        result["sparsity"] = coerced if coerced is not None else result["sparsity"]
+    else:
+        result["sparsity"] = None
+    return result
 
 
 def load_json(path: Path) -> dict:
@@ -215,7 +303,7 @@ def render_recommendations_tab(
 def render_insights_tab():
     st.subheader("What the data looks like")
 
-    eda_summary = load_json(DATA_PROC / "eda_summary.json")
+    eda_summary = load_eda_summary()
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Books", humanize_int(eda_summary.get("n_books")))
