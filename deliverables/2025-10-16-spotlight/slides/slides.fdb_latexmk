@@ -1,6 +1,6 @@
 # Fdb version 4
-["pdflatex"] 1760614809.78747 "/Users/villafuertech/Documents/Professional/Independent_work/BookTrendsRecSys/deliverables/2025-10-16-spotlight/slides/slides.tex" "slides.pdf" "slides" 1760614811.46251 0
-  "/Users/villafuertech/Documents/Professional/Independent_work/BookTrendsRecSys/deliverables/2025-10-16-spotlight/slides/slides.tex" 1760614808.00279 9404 cd55f508bd161a9f26656df6efffbf2e ""
+["pdflatex"] 1760614961.61283 "/Users/villafuertech/Documents/Professional/Independent_work/BookTrendsRecSys/deliverables/2025-10-16-spotlight/slides/slides.tex" "slides.pdf" "slides" 1760614963.24744 0
+  "/Users/villafuertech/Documents/Professional/Independent_work/BookTrendsRecSys/deliverables/2025-10-16-spotlight/slides/slides.tex" 1760614959.67408 9323 0dce879c997b661f288dc52d2dc07816 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc" 1254269338 2375 baa924870cfb487815765f9094cf3728 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/lm/lm-mathex.enc" 1202520719 3486 c7eadf5dcc57b3b2d11736679f6636ba ""
   "/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc" 1202520719 2405 5dcf2c1b967ee25cc46c58cd52244aed ""
@@ -244,11 +244,11 @@
   "books_by_language.png" 1760602452.41194 62407 a581ed4d790d4958d835a254ccdcb762 ""
   "books_published_per_year.png" 1760602452.04689 59670 008af50188b4ade1331951a7d0a9a00a ""
   "long_tail_coverage.png" 1760602455.07354 68794 a63fbd906d187dcec59d7fb24b4f10c4 ""
-  "slides.aux" 1760614811.37219 3529 332856339ba6f2c9fac8aee4198b8f89 "pdflatex"
-  "slides.nav" 1760614811.37316 2411 5da1654076221241bf80148bab1cade1 "pdflatex"
-  "slides.out" 1760614811.37301 81 5bcea9cf7d2d9aece7cac4018e9f6c5b "pdflatex"
-  "slides.tex" 1760614808.00279 9404 cd55f508bd161a9f26656df6efffbf2e ""
-  "slides.vrb" 1760614811.36299 343 af2a2a38b809424145040fcec72082b6 "pdflatex"
+  "slides.aux" 1760614963.1552 3400 703639f039629ff9a60d9144afe69966 "pdflatex"
+  "slides.nav" 1760614963.15587 2318 7c1446462822cf1741f7d8d26e45fcd4 "pdflatex"
+  "slides.out" 1760614963.15571 81 5bcea9cf7d2d9aece7cac4018e9f6c5b "pdflatex"
+  "slides.tex" 1760614959.67408 9323 0dce879c997b661f288dc52d2dc07816 ""
+  "slides.vrb" 1760614963.14546 343 af2a2a38b809424145040fcec72082b6 "pdflatex"
   (generated)
   "slides.aux"
   "slides.log"
