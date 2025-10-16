@@ -1,6 +1,4 @@
 \documentclass[11pt,a4paper]{article}
-
-% --- Basics & layout ---
 \usepackage[margin=1in]{geometry}
 \usepackage{graphicx}
 \usepackage{booktabs}
@@ -15,6 +13,8 @@
 \usepackage{float}
 \usepackage{url}
 \usepackage{ifthen}
+\usepackage[T1]{fontenc}
+\usepackage{inconsolata}
 
 \hypersetup{
   pdftitle  = {BookTrendsRecSys — Technical Report},
@@ -25,57 +25,41 @@
   citecolor = black
 }
 
-% ------------------------------------------------------------------
-% FIGURE PATHS
-% Works whether you compile from the report/ folder or from repo root.
-% - From report/: ../../../figs/eda/
-% - From repo root (some IDEs): figs/eda/
-% Add both (and a couple extra safe variants).
-% ------------------------------------------------------------------
 \graphicspath{
   {../../../figs/eda/}%
-  {../../../../figs/eda/}% in case an editor nests one more level
-  {../../figs/eda/}% safety
-  {../figs/eda/}% safety
-  {figs/eda/}% compile from repo root
+  {../../../../figs/eda/}%
+  {../../figs/eda/}%
+  {../figs/eda/}%
+  {figs/eda/}%
 }
 
-% --- Safe-figure macro (won't break if file missing) ---
 \newcommand{\figfile}[3][\linewidth]{%
   \IfFileExists{#2}{%
-    \begin{figure}[H]
-      \centering
-      \includegraphics[width=#1]{#2}
-      \caption{#3}
-    \end{figure}
-  }{%
-    \begin{figure}[H]
-      \centering
-      \fbox{\parbox{0.9\linewidth}{\centering Missing figure: \texttt{#2}}}
-      \caption{#3}
-    \end{figure}
+    \begin{figure}[H]\centering\includegraphics[width=#1]{#2}\caption{#3}\end{figure}
+  }{% 
+    \begin{figure}[H]\centering\fbox{\parbox{0.9\linewidth}{\centering Missing figure: \texttt{#2}}}\caption{#3}\end{figure}
   }%
 }
 
-% --- Inline values (edit here if you want real numbers) ---
-\newcommand{\Pten}{N/A}
-\newcommand{\Rten}{N/A}
-\newcommand{\NDCGten}{N/A}
-\newcommand{\ValNDCGten}{N/A}
-\newcommand{\RankParam}{N/A}
-\newcommand{\RegParam}{N/A}
-\newcommand{\AlphaParam}{N/A}
-\newcommand{\ItersParam}{N/A}
-\newcommand{\ParityGapRegion}{N/A}
-\newcommand{\ParityGapGenre}{N/A}
-\newcommand{\NBooks}{N/A}
-\newcommand{\NUsers}{N/A}
-\newcommand{\NInter}{N/A}
-\newcommand{\Sparsity}{N/A}
-\newcommand{\YearSpan}{N/A}
-\newcommand{\TopLangs}{N/A}
+% ---- Macros (fill these with computed values) ----
+\newcommand{\Pten}{0.0240\%}
+\newcommand{\Rten}{0.0204\%}
+\newcommand{\NDCGten}{0.0249\%}
+\newcommand{\ValNDCGten}{0.0148\%}
+\newcommand{\RankParam}{64}
+\newcommand{\RegParam}{0.05}
+\newcommand{\AlphaParam}{20}
+\newcommand{\ItersParam}{10}
+\newcommand{\ParityGapRegion}{0.0052 pp}
+\newcommand{\ParityGapGenre}{0.0786 pp}
+\newcommand{\NBooks}{10,000}
+\newcommand{\NUsers}{53,424}
+\newcommand{\NInter}{5,976,479}
+\newcommand{\Sparsity}{98.88\%}
+\newcommand{\YearSpan}{1513--2017}
+\newcommand{\TopLangs}{eng (6,341), en-US (2,070), nan (1,084), en-GB (257), ara (64)}
 
-\title{\textbf{BookTrendsRecSys} --- Technical Report}
+\title{\textbf{BookTrendsRecSys} — Technical Report}
 \author{Team BookTrends}
 \date{\today}
 
@@ -84,74 +68,83 @@
 
 \begin{abstract}
 \noindent
-We present \textbf{BookTrendsRecSys}, a compact recommendation system that produces a Top--10 list of books tailored to a reader.
-The pipeline covers \emph{data collection}, \emph{data preparation}, \emph{exploratory data analysis (EDA)}, an \emph{implicit-feedback ALS} model,
-\emph{offline evaluation} with order-aware ranking metrics (Precision@10, Recall@10, NDCG@10), and a \emph{Streamlit} app for serving results and dataset insights.
-We include a lightweight fairness snapshot across regions/genres (smaller gap $\Rightarrow$ more similar quality).
-Artifacts (metrics, parity tables, EDA images) are kept in versioned folders for reproducibility.
-This report documents design choices, limitations, and how to run the full system end-to-end.
+\textbf{BookTrendsRecSys} is a compact recommendation system that produces a Top--10 list tailored to a reader. The end-to-end pipeline spans \emph{data collection} (Goodreads reviews $\rightarrow$ user rating histories), \emph{data preparation} and EDA, an \emph{implicit-feedback ALS} model, \emph{offline evaluation} with ranking metrics (P@10, R@10, NDCG@10), a descriptive \emph{fairness snapshot}, and a \emph{Streamlit} app. Final test metrics: P@10=\textbf{\Pten}, R@10=\textbf{\Rten}, NDCG@10=\textbf{\NDCGten}; validation NDCG@10=\textbf{\ValNDCGten}. Parity gaps: region=\textbf{\ParityGapRegion}, genre=\textbf{\ParityGapGenre}. We emphasize strict split hygiene, resumable crawling, and reproducibility.
 \end{abstract}
 
 \section{Introduction}
-Readers and librarians face choice overload. Instead of predicting exact star ratings, we aim to surface a short, high-quality list.
-We therefore optimize and report \textbf{ranking} metrics directly connected to user experience:
-\emph{Precision@10} (hit-rate in the 10 shown), \emph{Recall@10} (coverage of relevant items in 10),
-and \emph{NDCG@10} (order-aware list quality). Model hyperparameters are tuned on validation NDCG@10,
-then frozen for final testing and app serving. Seed is fixed to 42.
+We optimize for short-list quality rather than rating error: P@10 (share of good picks among 10), R@10 (coverage within 10), NDCG@10 (order-aware list quality). Hyperparameters are selected on validation NDCG@10; seed is 42.
 
-\section{Data Collection}
-\textbf{Sources \& Scripts.} The repository includes a data-collection area and notes under
-\texttt{data\_collection\_scripts/}. Raw CSVs live in \texttt{data/raw/} (\texttt{books.csv}, \texttt{ratings.csv}).
-A typical ordered pipeline is: seed books $\rightarrow$ crawl book reviews $\rightarrow$ crawl user histories
-$\rightarrow$ aggregate \texttt{(user, book, rating, timestamp)} $\rightarrow$ QA coverage stats.
+\section{Data Collection and Crawling Strategy}
+\textbf{Layout \& scripts.}
+\begin{ttfamily}\small
+/scripts \\
+\quad get\_rating\_of\_users.py \quad\# Fetch rating lists for users from review files \\
+\quad get\_rating\_of\_books.py \quad\# Fetch ratings for books based on a list of book\_ids \\
+\quad build\_goodreads\_dataset.py \quad\# Merge all rating files into a unified dataset \\
+\quad count\_books.py \quad\# Count the number of books reviewed by users \\
+\quad goodreads\_reviews\_\_{book\_id}.json \quad\# Original review files containing user\_id \\
+\quad goodreads\_ratings\_{\{user\_id\}}.json \quad\# Rating results for individual users \\
+\quad goodreads\_dataset.csv \quad\# Merged training dataset (userid, bookid, rating)
+\end{ttfamily}
+
+\noindent\textbf{Workflow.} Start from popular book lists (seeds) $\rightarrow$ scrape book review pages to extract \texttt{user\_id}s $\rightarrow$ visit each user’s rating history (if public) $\rightarrow$ aggregate to \texttt{(userid, bookid, rating)} with timestamps and shelves when available.
+
+\noindent\textbf{Parsing \& selectors.} Robust CSS queries with fallbacks: review rows via \texttt{tr.bookalike.review} (fallback \texttt{table\#books tr}); ratings via \texttt{.ShelfStatus span[aria-label*="out of 5"]} to extract star counts; titles/IDs from title cells else cover cells/anchors. Handle alternate layouts.
+
+\noindent\textbf{Network hygiene.} Use a \texttt{requests.Session} with \texttt{HTTPAdapter}+Retry for 429/5xx; randomized delays; cookies and headers; pagination until no new rows or a safe cap. Resume-safe: skip existing JSON unless overwriting; validate after write.
+
+\noindent\textbf{Schemas.} Book review JSON: \texttt{\{book\_id, book\_title, average\_rating, reviews:[\{user, user\_id, user\_rating, review\_date, review, likes, comments\}], fetched\_at\}}. User ratings JSON: \texttt{\{source\_user\_id, count, items:[\{book\_id, book\_title, book\_url, author, user\_rating\_text, user\_rating, date\_read, date\_added, shelves, review\_url\}]\}}. Ethics/ToS: public data only, rate-limit, minimal PII.
 
 \section{Dataset \& EDA}
-\textbf{Structure.} Clean separation of inputs/processed/figures:
-\begin{itemize}[noitemsep]
-  \item \texttt{data/raw/}: \texttt{books.csv}, \texttt{ratings.csv}
-  \item \texttt{data/processed/}: \texttt{train/val/test.parquet}, lookups (\texttt{books.csv}, \texttt{users.csv}), summaries (\texttt{eda\_summary.json})
-  \item \texttt{figs/eda/}: exported charts used in app/report
-\end{itemize}
+Inputs in \texttt{data/raw/}; derived artifacts in \texttt{data/processed/}; figures in \texttt{figs/eda/}. Summary:
+\begin{table}[H]\centering\caption{Dataset summary (N/A if not available).}
+\begin{tabular}{@{}l l@{}}\toprule
+Books & \textbf{\NBooks} \\
+Users & \textbf{\NUsers} \\
+Interactions & \textbf{\NInter} \\
+Sparsity & \textbf{\Sparsity} \\
+Year span & \textbf{\YearSpan} \\
+Top languages & \textbf{\TopLangs} \\ \bottomrule
+\end{tabular}
+\end{table}
+\figfile{average_rating_hist.png}{Average rating distribution (catalog).}
+\figfile{books_published_per_year.png}{Catalog growth: books per year.}
+\figfile{rating_vs_count_scatter.png}{Rating vs. popularity (ratings count, log scale).}
+\figfile{books_by_language.png}{Top languages in the catalog.}
 
+\section{Model: Implicit ALS}
+We use Hu--Koren--Volinsky implicit ALS. With preference $p_{ui}\in\{0,1\}$ and confidence $c_{ui}=1+\alpha r_{ui}$, we solve:
+\[
+\min_{X,Y}\sum_{u,i}c_{ui}\bigl(p_{ui}-x_u^\top y_i\bigr)^2+\lambda(\lVert x_u\rVert^2+\lVert y_i\rVert^2),
+\]
+via alternating least-squares. Chosen hyperparameters: rank=\textbf{\RankParam}, reg=\textbf{\RegParam}, alpha=\textbf{\AlphaParam}, iters=\textbf{\ItersParam}.
 
-\section{Methods: Implicit ALS}
-We use the implicit-feedback \textbf{Alternating Least Squares (ALS)} formulation (Hu, Koren, Volinsky 2008).
-For observed interactions $r_{ui}$, we form binary preferences $p_{ui}\in\{0,1\}$ and confidence $c_{ui}=1+\alpha r_{ui}$.
-We factorize into $X$ (users) and $Y$ (items) by minimizing:
+\section{Evaluation}
+For user $u$ with ground truth $G_u$ and top-$K$ list $R_u=[i_1,\dots,i_K]$ ($K{=}10$):
 \[
-\min_{X,Y} \sum_{u,i} c_{ui}\bigl(p_{ui}-x_u^\top y_i\bigr)^2
-+ \lambda\bigl(\lVert x_u\rVert_2^2 + \lVert y_i\rVert_2^2\bigr),
+\mathrm{P@K}=\frac{1}{|U|}\sum_u\frac{|R_u\cap G_u|}{K},\quad
+\mathrm{R@K}=\frac{1}{|U|}\sum_u\frac{|R_u\cap G_u|}{|G_u|},
 \]
-via alternating least-squares updates. Hyperparameters (rank, $\lambda$, $\alpha$, iterations) are selected by validation NDCG@10.
+\[
+\mathrm{DCG@K}(u)=\sum_{j=1}^K\frac{\mathbf{1}[i_j\in G_u]}{\log_2(j+1)},\quad
+\mathrm{NDCG@K}=\frac{1}{|U|}\sum_u\frac{\mathrm{DCG@K}(u)}{\mathrm{IDCG@K}(u)}.
+\]
+\begin{table}[H]\centering\caption{Final offline metrics (higher is better).}
+\begin{tabular}{@{}l l@{}}\toprule
+Precision@10 & \textbf{\Pten} \\
+Recall@10 & \textbf{\Rten} \\
+NDCG@10 & \textbf{\NDCGten} \\
+Validation NDCG@10 & \textbf{\ValNDCGten} \\ \bottomrule
+\end{tabular}
+\end{table}
 
-\section{Evaluation: Metrics \& Results}
-Let $G_u$ be the held-out relevant set for user $u$, and $R_u=[i_1,\dots,i_K]$ the top-$K$ ranking ($K{=}10$).
-We compute:
-\[
-\mathrm{P@K}=\frac{1}{|U|}\sum_{u}\frac{|R_u\cap G_u|}{K},\quad
-\mathrm{R@K}=\frac{1}{|U|}\sum_{u}\frac{|R_u\cap G_u|}{|G_u|},
-\]
-\[
-\mathrm{DCG@K}(u)=\sum_{j=1}^{K}\frac{\mathbf{1}[i_j\in G_u]}{\log_2(j+1)},\quad
-\mathrm{NDCG@K}=\frac{1}{|U|}\sum_{u}\frac{\mathrm{DCG@K}(u)}{\mathrm{IDCG@K}(u)}.
-\]
-Binary relevance is used; users with empty $G_u$ are skipped in averages.
-
-\section{Fairness Snapshot}
-We compute the same metric (typically NDCG@10) by group (e.g., region or genre) and report the \emph{gap}:
-\[
-\text{gap}=\max_g \text{metric}(g) - \min_g \text{metric}(g).
-\]
-Smaller gaps imply more similar quality across groups. See \texttt{metrics/parity.csv}.
+\section{Fairness Snapshot (descriptive)}
+We compute NDCG@10 by group and report gap $\max_g-\min_g$. Region gap: \textbf{\ParityGapRegion}; genre gap: \textbf{\ParityGapGenre}. Many genre slices are sparse; treat as descriptive signals, not causal claims.
+\figfile{parity_region_bar.png}{Region snapshot (NDCG@10).}
+\figfile{parity_language_bar.png}{Language/genre proxy snapshot (NDCG@10).}
 
 \section{Application \& Serving}
-\textbf{Interface.} The Streamlit app (\texttt{app/app.py}) provides:
-\begin{itemize}[noitemsep]
-  \item \textbf{Recommendations:} choose a user/genre; see a short Top--10 list.
-  \item \textbf{Insights:} friendly KPI cards and EDA figures (ratings, languages, long tail, etc.).
-\end{itemize}
-
-\noindent\textbf{Run locally.}
+Streamlit app (\texttt{app/app.py}) with \emph{Recommendations} (Top--10 by user/genre) and \emph{Insights} (KPI + EDA charts). Uses precomputed factors/metrics; add popularity fallback for cold start.
 \begin{enumerate}[noitemsep,topsep=2pt]
   \item \texttt{pip install -r requirements.txt}
   \item \texttt{make data \&\& make train \&\& make eval \&\& make parity}
@@ -159,13 +152,15 @@ Smaller gaps imply more similar quality across groups. See \texttt{metrics/parit
 \end{enumerate}
 
 \section{Reproducibility}
-Seed fixed at 42; clean train/val/test protocol. Artifacts live under
-\texttt{models/}, \texttt{metrics/}, \texttt{figs/eda/}, \texttt{data/processed/}.
-Use \texttt{latexmk -pdf report.tex} from the \texttt{report/} folder to compile this document.
+Seed=42; strict train/val/test. Artifacts: \texttt{models/}, \texttt{metrics/}, \texttt{figs/eda/}, \texttt{data/processed/}. Compile this report:
+\begin{ttfamily}\small
+cd deliverables/2025-10-16-spotlight/report \\
+latexmk -pdf report.tex
+\end{ttfamily}
 
-\section{Limitations \& Future Work}
-Implicit data favors popularity; cold start remains challenging. Offline metrics are proxies; consider online tests.
-Future: content-aware models, exposure/coverage parity, and improved fallbacks for sparse slices.
-
+\section*{Appendix: Worked NDCG Example}
+For $K{=}5$, $G_u=\{b2,b5,b7\}$ and $R_u=[b1,b5,b9,b2,b8]$: hits at ranks 2,4. P@5=$2/5=40\%$; R@5=$2/3\approx66.7\%$. $\mathrm{DCG@5}\approx1.062$, $\mathrm{IDCG@5}\approx2.131$, NDCG@5$\approx49.8\%$.
+\figfile{long_tail_coverage.png}{Long tail: small set of items receives most interactions.}
+\figfile{user_item_heatmap_sample.png}{Sample of the user$\times$item interactions matrix.}
 
 \end{document}
