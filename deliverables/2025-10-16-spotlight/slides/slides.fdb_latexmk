@@ -1,6 +1,6 @@
 # Fdb version 4
-["pdflatex"] 1760610076.23364 "/Users/villafuertech/Documents/Professional/Independent_work/BookTrendsRecSys/deliverables/2025-10-16-spotlight/slides/slides.tex" "slides.pdf" "slides" 1760610077.77427 0
-  "/Users/villafuertech/Documents/Professional/Independent_work/BookTrendsRecSys/deliverables/2025-10-16-spotlight/slides/slides.tex" 1760610076.03779 9350 43ee772cad20fcda70893c076419844c ""
+["pdflatex"] 1760614809.78747 "/Users/villafuertech/Documents/Professional/Independent_work/BookTrendsRecSys/deliverables/2025-10-16-spotlight/slides/slides.tex" "slides.pdf" "slides" 1760614811.46251 0
+  "/Users/villafuertech/Documents/Professional/Independent_work/BookTrendsRecSys/deliverables/2025-10-16-spotlight/slides/slides.tex" 1760614808.00279 9404 cd55f508bd161a9f26656df6efffbf2e ""
   "/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc" 1254269338 2375 baa924870cfb487815765f9094cf3728 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/lm/lm-mathex.enc" 1202520719 3486 c7eadf5dcc57b3b2d11736679f6636ba ""
   "/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc" 1202520719 2405 5dcf2c1b967ee25cc46c58cd52244aed ""
@@ -238,17 +238,17 @@
   "/usr/local/texlive/2024/texmf-var/web2c/pdftex/pdflatex.fmt" 1725619777 8221429 3112e8f71864dfb91e6022619f96d971 ""
   "/usr/local/texlive/2024/texmf.cnf" 1710266656 577 e590dabc9e28c5b61546e15f63eebcdf ""
   "Average Rating Distribution.png" 1760604524.56138 38004 59a1e327ffbfa58014b23f8b07b8f70e ""
+  "Recommendations.png" 1760614451.29927 283370 cb3b743bc36cf24f805ea009c7614e69 ""
   "Word Cloud of Book Titles.png" 1760604524.56644 456330 d9cc98066dad227f7b4bc3c849c09247 ""
   "avg_rating_top10_most_rated.png" 1760602453.47534 93468 b5578253f84c93824556c3b004288d11 ""
   "books_by_language.png" 1760602452.41194 62407 a581ed4d790d4958d835a254ccdcb762 ""
   "books_published_per_year.png" 1760602452.04689 59670 008af50188b4ade1331951a7d0a9a00a ""
   "long_tail_coverage.png" 1760602455.07354 68794 a63fbd906d187dcec59d7fb24b4f10c4 ""
-  "parity_region_bar.png" 1760602458.30207 43039 3e0b36a5cdb9d642e91722e5cfadb4f3 ""
-  "slides.aux" 1760610077.68113 3271 f7e4e599d17618a832b73c7aebf70504 "pdflatex"
-  "slides.nav" 1760610077.68182 2225 ea0d33727aba5e82005bf2e63b44e378 "pdflatex"
-  "slides.out" 1760610077.68164 81 5bcea9cf7d2d9aece7cac4018e9f6c5b "pdflatex"
-  "slides.tex" 1760610076.03779 9350 43ee772cad20fcda70893c076419844c ""
-  "slides.vrb" 1760610077.67134 343 af2a2a38b809424145040fcec72082b6 "pdflatex"
+  "slides.aux" 1760614811.37219 3529 332856339ba6f2c9fac8aee4198b8f89 "pdflatex"
+  "slides.nav" 1760614811.37316 2411 5da1654076221241bf80148bab1cade1 "pdflatex"
+  "slides.out" 1760614811.37301 81 5bcea9cf7d2d9aece7cac4018e9f6c5b "pdflatex"
+  "slides.tex" 1760614808.00279 9404 cd55f508bd161a9f26656df6efffbf2e ""
+  "slides.vrb" 1760614811.36299 343 af2a2a38b809424145040fcec72082b6 "pdflatex"
   (generated)
   "slides.aux"
   "slides.log"

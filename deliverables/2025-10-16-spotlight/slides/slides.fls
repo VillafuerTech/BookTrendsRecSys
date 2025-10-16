@@ -410,11 +410,14 @@ INPUT ./Word Cloud of Book Titles.png
 INPUT ./Word Cloud of Book Titles.png
 INPUT ./Word Cloud of Book Titles.png
 INPUT ./Word Cloud of Book Titles.png
-INPUT ./parity_region_bar.png
-INPUT ./parity_region_bar.png
-INPUT ./parity_region_bar.png
-INPUT ./parity_region_bar.png
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/lm/ec-lmsso10.tfm
+INPUT ./Recommendations.png
+INPUT ./Recommendations.png
+INPUT ./Recommendations.png
+INPUT ./Recommendations.png
+INPUT ./Recommendations.png
+INPUT ./Recommendations.png
+INPUT ./Recommendations.png
 INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/lm/t1lmtt.fd
 INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/lm/t1lmtt.fd
 INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/lm/t1lmtt.fd
