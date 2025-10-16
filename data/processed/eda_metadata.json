@@ -1,0 +1,23 @@
+{
+  "books_per_year": {
+    "year_max": 2017,
+    "year_min": 1513
+  },
+  "cold_top10_dist": {
+    "csv": "data/processed/top10_cold_books.csv",
+    "thresholds": {
+      "high_rating_threshold": 4.0,
+      "low_count_threshold": 12479.2
+    }
+  },
+  "top10_most_rated_avg": {
+    "csv": "data/processed/top10_most_rated.csv",
+    "top_titles": [
+      "The Hunger Games (The Hunger Games, #1)",
+      "Harry Potter and the Sorcerer's Stone (Harry Potter, #1)",
+      "Twilight (Twilight, #1)",
+      "To Kill a Mockingbird",
+      "The Great Gatsby"
+    ]
+  }
+}

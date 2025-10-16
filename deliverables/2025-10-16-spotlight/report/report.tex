@@ -1,0 +1,171 @@
+\documentclass[11pt,a4paper]{article}
+
+% --- Basics & layout ---
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{array}
+\usepackage{float}
+\usepackage{url}
+\usepackage{ifthen}
+
+\hypersetup{
+  pdftitle  = {BookTrendsRecSys — Technical Report},
+  pdfauthor = {Team BookTrends},
+  colorlinks = true,
+  linkcolor = black,
+  urlcolor  = blue,
+  citecolor = black
+}
+
+% ------------------------------------------------------------------
+% FIGURE PATHS
+% Works whether you compile from the report/ folder or from repo root.
+% - From report/: ../../../figs/eda/
+% - From repo root (some IDEs): figs/eda/
+% Add both (and a couple extra safe variants).
+% ------------------------------------------------------------------
+\graphicspath{
+  {../../../figs/eda/}%
+  {../../../../figs/eda/}% in case an editor nests one more level
+  {../../figs/eda/}% safety
+  {../figs/eda/}% safety
+  {figs/eda/}% compile from repo root
+}
+
+% --- Safe-figure macro (won't break if file missing) ---
+\newcommand{\figfile}[3][\linewidth]{%
+  \IfFileExists{#2}{%
+    \begin{figure}[H]
+      \centering
+      \includegraphics[width=#1]{#2}
+      \caption{#3}
+    \end{figure}
+  }{%
+    \begin{figure}[H]
+      \centering
+      \fbox{\parbox{0.9\linewidth}{\centering Missing figure: \texttt{#2}}}
+      \caption{#3}
+    \end{figure}
+  }%
+}
+
+% --- Inline values (edit here if you want real numbers) ---
+\newcommand{\Pten}{N/A}
+\newcommand{\Rten}{N/A}
+\newcommand{\NDCGten}{N/A}
+\newcommand{\ValNDCGten}{N/A}
+\newcommand{\RankParam}{N/A}
+\newcommand{\RegParam}{N/A}
+\newcommand{\AlphaParam}{N/A}
+\newcommand{\ItersParam}{N/A}
+\newcommand{\ParityGapRegion}{N/A}
+\newcommand{\ParityGapGenre}{N/A}
+\newcommand{\NBooks}{N/A}
+\newcommand{\NUsers}{N/A}
+\newcommand{\NInter}{N/A}
+\newcommand{\Sparsity}{N/A}
+\newcommand{\YearSpan}{N/A}
+\newcommand{\TopLangs}{N/A}
+
+\title{\textbf{BookTrendsRecSys} --- Technical Report}
+\author{Team BookTrends}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+We present \textbf{BookTrendsRecSys}, a compact recommendation system that produces a Top--10 list of books tailored to a reader.
+The pipeline covers \emph{data collection}, \emph{data preparation}, \emph{exploratory data analysis (EDA)}, an \emph{implicit-feedback ALS} model,
+\emph{offline evaluation} with order-aware ranking metrics (Precision@10, Recall@10, NDCG@10), and a \emph{Streamlit} app for serving results and dataset insights.
+We include a lightweight fairness snapshot across regions/genres (smaller gap $\Rightarrow$ more similar quality).
+Artifacts (metrics, parity tables, EDA images) are kept in versioned folders for reproducibility.
+This report documents design choices, limitations, and how to run the full system end-to-end.
+\end{abstract}
+
+\section{Introduction}
+Readers and librarians face choice overload. Instead of predicting exact star ratings, we aim to surface a short, high-quality list.
+We therefore optimize and report \textbf{ranking} metrics directly connected to user experience:
+\emph{Precision@10} (hit-rate in the 10 shown), \emph{Recall@10} (coverage of relevant items in 10),
+and \emph{NDCG@10} (order-aware list quality). Model hyperparameters are tuned on validation NDCG@10,
+then frozen for final testing and app serving. Seed is fixed to 42.
+
+\section{Data Collection}
+\textbf{Sources \& Scripts.} The repository includes a data-collection area and notes under
+\texttt{data\_collection\_scripts/}. Raw CSVs live in \texttt{data/raw/} (\texttt{books.csv}, \texttt{ratings.csv}).
+A typical ordered pipeline is: seed books $\rightarrow$ crawl book reviews $\rightarrow$ crawl user histories
+$\rightarrow$ aggregate \texttt{(user, book, rating, timestamp)} $\rightarrow$ QA coverage stats.
+
+\section{Dataset \& EDA}
+\textbf{Structure.} Clean separation of inputs/processed/figures:
+\begin{itemize}[noitemsep]
+  \item \texttt{data/raw/}: \texttt{books.csv}, \texttt{ratings.csv}
+  \item \texttt{data/processed/}: \texttt{train/val/test.parquet}, lookups (\texttt{books.csv}, \texttt{users.csv}), summaries (\texttt{eda\_summary.json})
+  \item \texttt{figs/eda/}: exported charts used in app/report
+\end{itemize}
+
+
+\section{Methods: Implicit ALS}
+We use the implicit-feedback \textbf{Alternating Least Squares (ALS)} formulation (Hu, Koren, Volinsky 2008).
+For observed interactions $r_{ui}$, we form binary preferences $p_{ui}\in\{0,1\}$ and confidence $c_{ui}=1+\alpha r_{ui}$.
+We factorize into $X$ (users) and $Y$ (items) by minimizing:
+\[
+\min_{X,Y} \sum_{u,i} c_{ui}\bigl(p_{ui}-x_u^\top y_i\bigr)^2
++ \lambda\bigl(\lVert x_u\rVert_2^2 + \lVert y_i\rVert_2^2\bigr),
+\]
+via alternating least-squares updates. Hyperparameters (rank, $\lambda$, $\alpha$, iterations) are selected by validation NDCG@10.
+
+\section{Evaluation: Metrics \& Results}
+Let $G_u$ be the held-out relevant set for user $u$, and $R_u=[i_1,\dots,i_K]$ the top-$K$ ranking ($K{=}10$).
+We compute:
+\[
+\mathrm{P@K}=\frac{1}{|U|}\sum_{u}\frac{|R_u\cap G_u|}{K},\quad
+\mathrm{R@K}=\frac{1}{|U|}\sum_{u}\frac{|R_u\cap G_u|}{|G_u|},
+\]
+\[
+\mathrm{DCG@K}(u)=\sum_{j=1}^{K}\frac{\mathbf{1}[i_j\in G_u]}{\log_2(j+1)},\quad
+\mathrm{NDCG@K}=\frac{1}{|U|}\sum_{u}\frac{\mathrm{DCG@K}(u)}{\mathrm{IDCG@K}(u)}.
+\]
+Binary relevance is used; users with empty $G_u$ are skipped in averages.
+
+\section{Fairness Snapshot}
+We compute the same metric (typically NDCG@10) by group (e.g., region or genre) and report the \emph{gap}:
+\[
+\text{gap}=\max_g \text{metric}(g) - \min_g \text{metric}(g).
+\]
+Smaller gaps imply more similar quality across groups. See \texttt{metrics/parity.csv}.
+
+\section{Application \& Serving}
+\textbf{Interface.} The Streamlit app (\texttt{app/app.py}) provides:
+\begin{itemize}[noitemsep]
+  \item \textbf{Recommendations:} choose a user/genre; see a short Top--10 list.
+  \item \textbf{Insights:} friendly KPI cards and EDA figures (ratings, languages, long tail, etc.).
+\end{itemize}
+
+\noindent\textbf{Run locally.}
+\begin{enumerate}[noitemsep,topsep=2pt]
+  \item \texttt{pip install -r requirements.txt}
+  \item \texttt{make data \&\& make train \&\& make eval \&\& make parity}
+  \item \texttt{streamlit run app/app.py}
+\end{enumerate}
+
+\section{Reproducibility}
+Seed fixed at 42; clean train/val/test protocol. Artifacts live under
+\texttt{models/}, \texttt{metrics/}, \texttt{figs/eda/}, \texttt{data/processed/}.
+Use \texttt{latexmk -pdf report.tex} from the \texttt{report/} folder to compile this document.
+
+\section{Limitations \& Future Work}
+Implicit data favors popularity; cold start remains challenging. Offline metrics are proxies; consider online tests.
+Future: content-aware models, exposure/coverage parity, and improved fallbacks for sparse slices.
+
+
+\end{document}

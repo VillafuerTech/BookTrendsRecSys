@@ -1,0 +1,32 @@
+{
+  "books": {
+    "book_id": "Unique identifier for the book record.",
+    "goodreads_book_id": "Original Goodreads identifier for the book.",
+    "best_book_id": "Best edition identifier from Goodreads.",
+    "work_id": "Goodreads work identifier spanning editions.",
+    "books_count": "Number of editions/versions for the work.",
+    "isbn": "International Standard Book Number.",
+    "isbn13": "13-digit International Standard Book Number.",
+    "authors": "Author(s) as provided by the source dataset.",
+    "original_publication_year": "First known publication year of the work.",
+    "original_title": "Original title of the work when first published.",
+    "title": "Title used for this edition/record.",
+    "language_code": "Language code of the edition (ISO-like).",
+    "average_rating": "Average reader rating (1-5 scale).",
+    "ratings_count": "Total count of ratings received across editions.",
+    "work_ratings_count": "Total ratings count for the work across editions.",
+    "work_text_reviews_count": "Count of text reviews for the work.",
+    "ratings_1": "Count of 1-star ratings (if provided).",
+    "ratings_2": "Count of 2-star ratings (if provided).",
+    "ratings_3": "Count of 3-star ratings (if provided).",
+    "ratings_4": "Count of 4-star ratings (if provided).",
+    "ratings_5": "Count of 5-star ratings (if provided).",
+    "image_url": "Books dataset column.",
+    "small_image_url": "Books dataset column."
+  },
+  "ratings": {
+    "user_id": "Identifier for the user (ratings data).",
+    "book_id": "Unique identifier for the book record.",
+    "rating": "Explicit rating value given by a user."
+  }
+}

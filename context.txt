@@ -1,0 +1,324 @@
+.
+├── als_recommender.py
+├── book_analysis.py
+├── context.txt
+├── datasets
+│   ├── books.csv
+│   └── ratings.csv
+├── LICENSE
+├── README.md
+├── results
+│   ├── 1~5 Star Rating Distribution of Top 10 High-Rating Low-Rating-Count Books.png
+│   ├── Average Rating by Publication Year.png
+│   ├── Average Rating Distribution.png
+│   ├── Average Rating of Top 10 Most Rated Books.png
+│   ├── Number of Books by Language.png
+│   ├── Number of Books by Non-English Languages.png
+│   ├── Number of Books Published per Year.png
+│   ├── Percentage of Books by Average Rating.png
+│   ├── Ratings 1~5 Distribution of Top 10 Most Rated Books.png
+│   └── Word Cloud of Book Titles.png
+└── scripts
+    ├── book_counts.csv
+    ├── build_goodreads_dataset.py
+    ├── count_books.py
+    ├── get_rating_of_books.py
+    ├── get_rating_of_users.py
+    └── README.md
+
+4 directories, 23 files
+
+Skip to content
+Navigation Menu
+thezmmm
+BookTrendsRecSys
+ 
+Type / to search
+Code
+Issues
+Pull requests
+Actions
+Projects
+Wiki
+Security
+Insights
+Settings
+Owner avatar
+BookTrendsRecSys
+Public
+thezmmm/BookTrendsRecSys
+
+t
+Name		
+hblovo
+hblovo
+Merge pull request #2 from thezmmm/data-collection
+783219a
+ · 
+yesterday
+datasets
+test data
+3 weeks ago
+results
+add results
+2 days ago
+scripts
+update README for data collection
+yesterday
+.gitignore
+Initial commit
+last month
+LICENSE
+Initial commit
+last month
+README.md
+update doc
+2 days ago
+als_recommender.py
+save the origin train function
+last month
+book_analysis.py
+update
+2 days ago
+Repository files navigation
+README
+Apache-2.0 license
+🎓 Course Overview
+
+This project was developed as part of the Introduction to Data Science course at the University of Helsinki.
+
+This project integrates both data analytics and machine learning components, demonstrating end-to-end data science workflow — from data exploration and visualization to model training and evaluation.
+
+Data source
+
+Data about book https://www.goodreads.com/
+You can get personal data like ratings used for train a book recommendation system
+Personal data divided by region (change the parameter in the url)
+https://www.goodreads.com/user/best_reviewers?country=FI&duration=a
+https://www.goodreads.com/user/best_reviewers?country=US&duration=a
+Book list with meaningful filters
+https://www.goodreads.com/list/
+Data Collect
+
+This dataset contains detailed ratings and metadata for 10,000 of the most popular books, covering a total of six million user ratings. It is primarily used for analyzing user preferences, recommendation system modeling, and book popularity studies.
+
+Book Ratings
+Contains six million ratings from users for the 10,000 most popular books.
+
+Ratings are typically on a scale from 1 to 5.
+
+Book Metadata
+Each row represents a book and contains the following attributes:
+
+Column Name	Description
+book_id	Unique internal identifier for each book.
+goodreads_book_id	Book ID as listed on Goodreads.
+best_book_id	Best edition ID on Goodreads.
+work_id	Identifier for the work, grouping all editions.
+books_count	Number of editions of this book.
+isbn	10-digit ISBN of the book edition.
+isbn13	13-digit ISBN of the book edition.
+authors	Names of the authors of the book.
+original_publication_year	Year the book was originally published.
+original_title	Original title of the book (if different).
+title	Main title of the book.
+language_code	Language code of the book (e.g., en).
+average_rating	Average user rating for this book.
+ratings_count	Number of ratings for this edition.
+work_ratings_count	Total number of ratings across all editions.
+work_text_reviews_count	Total number of text reviews across all editions.
+ratings_1 … ratings_5	Count of ratings at each level (1–5 stars).
+image_url	URL of the book's main image.
+small_image_url	URL of a smaller version of the book image.
+🔹 ALS Recommendation Module
+
+This module implements an ALS-based collaborative filtering model using PySpark MLlib. It provides utilities for data preprocessing, model training, hyperparameter tuning, evaluation, and incremental updates.
+
+Function	Description
+init_spark(app_name="BookRecommendation")	Initializes a Spark session with proper configurations.
+load_and_preprocess_data(spark, dataset_path)	Loads and cleans the dataset, handling type casting and indexing if needed.
+train_als_model(train_df, rank, maxIter, regParam)	Trains a baseline ALS model with specified parameters.
+train_als_model_with_tuning(train_df)	Runs grid search to find the best combination of rank, regParam, and maxIter.
+predict_and_evaluate(model, test_df)	Evaluates model performance using RMSE.
+save_model(model, path) / load_model(path)	Saves or loads a trained ALS model.
+update_model_with_new_data(spark, old_dataset_path, new_dataset_path, model_save_path)	Merges new data with existing data, retrains, and saves the updated model.
+Results
+
+The ALS model was evaluated on the test set, achieving a RMSE of 0.8230.
+
+Interpretation:
+
+On average, predicted ratings deviate by ~0.82 points on the 1–5 scale.
+
+The model effectively captures user-book preferences and handles sparse rating data.
+
+The model provides reasonably accurate book recommendations, helping users discover new books based on their previous ratings.
+
+📊 Book Data Analysis Module
+
+This module performs exploratory data analysis (EDA) and visualization on the books.csv dataset. It provides insights into book ratings, publication trends, language distributions, and popular titles through various charts and plots.
+
+Category	Description	Visualization Type
+Rating Distribution	Distribution of average ratings among all books	Histogram & Pie Chart
+Publication Trends	Number of books published per year, and average rating by year	Line Charts
+Language Distribution	Number of books by language (including non-English)	Horizontal Bar Charts
+Top Rated Books	Top 10 books with the highest rating counts	Bar Chart (average rating)
+Rating Composition	Breakdown of 1–5 star ratings for top-rated books	Stacked Bar Chart
+Cold Books	High-rated books with few ratings	Stacked Bar Chart
+Word Cloud	Common words appearing in book titles	Word Cloud
+Output Examples
+
+📈 Average Rating Distribution – shows the most common rating ranges
+
+📉 Publication Trend – number of books published per year
+
+🌍 Language Distribution – identifies the most common languages
+
+⭐ Top 10 Most Rated Books – shows popularity and rating balance
+
+🧊 Cold Book Detection – finds underrated gems
+
+☁️ Word Cloud – highlights common words in book titles
+
+About
+
+No description, website, or topics provided.
+Resources
+ Readme
+License
+ Apache-2.0 license
+ Activity
+Stars
+ 1 star
+Watchers
+ 1 watching
+Forks
+ 1 fork
+Report repository
+Releases
+
+No releases published
+Create a new release
+Packages
+
+No packages published
+Publish your first package
+Contributors
+2
+
+@thezmmm
+thezmmm Yaohui
+@hblovo
+hblovo
+Languages
+
+Python
+100.0%
+Suggested workflows
+Based on your tech stack
+Pylint logo
+Pylint
+Lint a Python application with pylint.
+Django logo
+Django
+Build and Test a Django Project
+SLSA Generic generator logo
+SLSA Generic generator
+Generate SLSA3 provenance for your existing release workflows
+More workflows
+Footer
+© 2025 GitHub, Inc.
+Footer navigation
+Terms
+Privacy
+Security
+Status
+Community
+Docs
+Contact
+Manage cookies
+Do not share my personal information
+Copied!
+
+Introduction to Data Science
+›
+Mini-project guidelines
+Mini-project guidelines
+✔️Step 1 - form a group of 3: You can use the #group-forming channel on Discord (See "Communication channels") to meet new people. The three of you should try to be registered in the same workshop session, as your TA will also be your project coach, assisting you with questions and feedback.
+
+✔️ Step 2 - submit group forming: Submit the names of your group members at the Mini-Project Submission Hub by Monday September 8th.
+
+✔️ Step 3 - come up with a cool topic: Brainstorm and research the topic of your mini-project. Most importantly, it should be something that gets you excited.
+
+✔️ Step 4 - fill in the mini-project canvas: Plan the outline of your mini-project proposal based on the Mini-Project Canvas (see below).
+
+✔️ Step 5 - submit your mini-project canvas: Submit your mini-project canvas by Monday September 15th. Remember to include the names of your group members. Your mini-project coach (respective TA) will review your canvas and give you some feedback on the outlined topic.
+
+✔️ Step 6 - spotlight presentations: During the last week of workshops (week 42), we are hosting a series of spotlight sessions (during the workshop time slots). Your group should prepare a (no more - no less) 3-minute spotlight presentation of your project. More tips on how to prepare the spotlight presentation can be found below.
+
+Deadline for group projects is Monday October 27th at 23:59.
+Deadline for solo projects is Monday November 17th at 23:59.
+
+Mini-project canvas
+As soon as you have formed a team, come together and take a look at the mini-project canvas. It will help you brainstorm and align on a preliminary mini-project outline. Submit your mini-project canvas under 'Submit mini-project canvas' using the following template (opens in a new tab) (opens in a new tab) to describe your idea:
+
+Add alt
+You can create a copy of the google document, and follow the example questions to shortly outline your approach in each column (please don't use a font size smaller than 4). Finally, you can export a PDF version and submit it at the Mini-Project Submission Hub. A TA will take a look at your canvas and get back to you with some feedback during the first weeks of the course.
+
+A good mini-project should include interesting challenges under most of the above columns. For example, a mini-project that begins with a single clean dataset and a very straightforward task (predict a given response variable), should be further enriched with, e.g., trying a bit more advanced ML methods or developing some interactive visualizations. The TAs are here to help you avoid under/over-shooting with your project idea, and steer you in the right direction of what is expected. You will also find helpful the assessment criteria, in order to understand better what is expected under the mini-project scope.
+
+At any moment, don't hesitate to discuss your ideas with other groups and teachers!
+
+Spotlight sessions
+During the last week of exercise sessions (week 42, i.e., 15.-17.10.2025), you will give a spotlight presentation about your project. Your group should prepare a (no more - no less) 3-minute presentation about your project. The presentation should be directed to your predefined target group, and thus should not be technical. Remember to stress the "selling points" of your project idea: why is this useful? Why is it interesting to this audience?, etc. You can accompany the presentation with slides or a demo of your application.
+
+
+At the spotlight sessions, you will be expected to also give feedback (through on online form) to other groups.
+
+Additional info:
+The presentations will be graded by the TA, also considering the student feedback via the online form. However, keep in mind that we will not assess how fluent or smooth you are as a speaker, but rather how well prepared your presentation is – it is, after all, quite easy to tell apart a presentation that has been properly rehearsed from one that isn't. So make sure to prepare well and rehearse multiple times.
+
+You can share the workload of preparing and presenting as you wish and not all members need to be "on stage" as long as they contribute in other ways.
+
+The presentation is optional for those doing a solo project.
+
+Deliverables
+The mini-project deliverables are to be submitted at the Mini-Project Submission Hub. The final deliverables must include:
+
+Web application | website | blogpost: Decide on how you wish to communicate your results online. It can be using either a web/mobile application, a website or a blogpost. Choose the most appropriate medium to present your analysis given the predefined target audience and the workload/timeframe of the project. Include in the deliverables a link to your web application, website, or blog. Remember that the web app | website | blogpost are addressed towards your predefined target audience, so avoid technical terms, but rather try to communicate effectively the added value.
+Technical report: The technical report is simply an essay you can return in PDF (max 5 pages). This is the place to describe the technical components of your work, and refer to all the methods you used backend and usually are not interesting to your target audience. Reflect on your initial mini-project canvas: what worked? What didn't (and why)? What changes did you have to make from your initial plan and why? What would you have done differently now? What would possible future steps be? Tell us about your experience, technical implementation of the project and reflect on your learning outcomes. The structure of the report is up to you. If it helps, you can use the elements of the mini-project canvas, e.g. data collection, preprocessing, visualizations, machine learning, communication of results, building the platform, etc.
+Assessment criteria
+Presentation: Presentation of the problem and the proposed solution. How clear is the problem description? Are the results communicated well? How convincing was the spotlight presentation to the predefined target audience? [depending on the topic’s purpose]
+
+Value: What is the value of the final deliverable? How useful are the results of the project?
+
+Effort: Do you think there was a sufficient amount of work put into the project?
+
+Idea: How original is the topic idea in your opinion? How useful/innovative is it? Could it have more applications than the one described in this case?
+
+Topic scope: How suitable was this project for this course? Are all stages of the data life cycle taken into account?
+
+Actionable: How actionable is the outcome? Could it be used in real life applications?
+
+Deliverables: How understandable/beneficial is the project outcome to your target end-user? How clear is the problem definition and the implemented approach? How clear is the added value? Are the results well-communicated to your target end-user? Clarity and soundness of technical report. What were the learning outcomes you achieved?
+
+Project analysis: Data wrangling, data analysis, communication of results will be taken into account, according to each project topic. For example, the visualizations of a project: How well do the visualizations communicate the point made? How do they contribute to the added value? Is it possible that analysis of other available variables could have provided more added value to the end-user?
+
+Solo projects
+When you need to take a solo project and a separate exam, outside of period I:
+
+Submit your project deliverables by email to Teemu Roos (teemu.roos@cs.helsinki.fi) at least 10 days before the separate exam.
+Register for the separate exam on Sisu at least 10 days in advance.
+In the exceptional case that you will need to take a solo project and a separate exam during the lecture course (Period I):
+
+Submit in 'Group forming' by the given deadline, to let us know you will work solo.
+Submit in 'Submit mini-project canvas' your project idea by the given deadline, and get feedback from your coach.
+The pitch is optional for solo projects.
+Submit deliverables under 'Submit mini-project'/'Mini-project submissions' by Monday November 17th at 23:59.
+About
+The University of Helsinki MOOC Center makes high-quality online education possible by developing and researching educational software and online learning materials. Teachers both within and without the University of Helsinki rely on our tools to create impactful teaching materials. Our popular Massive Open Online Courses (MOOCs) have been available through MOOC.fi since 2012.
+This website is powered by an open source software developed by the University of Helsinki MOOC Center. Star the project on GitHub: Project Github.
+Privacy
+Accessibility statement
+Introduction to Data Science - MOOC.fi courses
+
