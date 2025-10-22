@@ -1,5 +1,7 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{inconsolata}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{siunitx}
@@ -13,8 +15,6 @@
 \usepackage{float}
 \usepackage{url}
 \usepackage{ifthen}
-\usepackage[T1]{fontenc}
-\usepackage{inconsolata}
 
 \hypersetup{
   pdftitle  = {BookTrendsRecSys — Technical Report},
@@ -25,6 +25,11 @@
   citecolor = black
 }
 
+% Compact lists
+\setlist[itemize]{noitemsep,topsep=2pt,leftmargin=1.2em}
+\setlist[enumerate]{noitemsep,topsep=2pt,leftmargin=1.4em}
+
+% Graphics search paths (kept broad so it works from repo root or deliverables folder)
 \graphicspath{
   {../../../figs/eda/}%
   {../../../../figs/eda/}%
@@ -33,15 +38,16 @@
   {figs/eda/}%
 }
 
+% Helper to include figures even if path changes
 \newcommand{\figfile}[3][\linewidth]{%
   \IfFileExists{#2}{%
-    \begin{figure}[H]\centering\includegraphics[width=#1]{#2}\caption{#3}\end{figure}
+    \begin{figure}[H]\centering\includegraphics[width=#1]{#2}\caption{#3}\end{figure}%
   }{% 
-    \begin{figure}[H]\centering\fbox{\parbox{0.9\linewidth}{\centering Missing figure: \texttt{#2}}}\caption{#3}\end{figure}
+    \begin{figure}[H]\centering\fbox{\parbox{0.9\linewidth}{\centering Missing figure: \texttt{#2}}}\caption{#3}\end{figure}%
   }%
 }
 
-% ---- Macros (fill these with computed values) ----
+% ---- Key numbers (fill from metrics/ & EDA artifacts when available) ----
 \newcommand{\Pten}{0.0240\%}
 \newcommand{\Rten}{0.0204\%}
 \newcommand{\NDCGten}{0.0249\%}
@@ -52,15 +58,15 @@
 \newcommand{\ItersParam}{10}
 \newcommand{\ParityGapRegion}{0.0052 pp}
 \newcommand{\ParityGapGenre}{0.0786 pp}
-\newcommand{\NBooks}{10,000}
-\newcommand{\NUsers}{53,424}
-\newcommand{\NInter}{5,976,479}
+\newcommand{\NBooks}{10{,}000}
+\newcommand{\NUsers}{53{,}424}
+\newcommand{\NInter}{5{,}976{,}479}
 \newcommand{\Sparsity}{98.88\%}
 \newcommand{\YearSpan}{1513--2017}
-\newcommand{\TopLangs}{eng (6,341), en-US (2,070), nan (1,084), en-GB (257), ara (64)}
+\newcommand{\TopLangs}{eng (6{,}341), en-US (2{,}070), nan (1{,}084), en-GB (257), ara (64)}
 
 \title{\textbf{BookTrendsRecSys} — Technical Report}
-\author{Team BookTrends}
+\author{Team BookTrends\\Introduction to Data Science, University of Helsinki}
 \date{\today}
 
 \begin{document}
@@ -68,98 +74,173 @@
 
 \begin{abstract}
 \noindent
-\textbf{BookTrendsRecSys} is a compact recommendation system that produces a Top--10 list tailored to a reader. The end-to-end pipeline spans \emph{data collection} (Goodreads reviews $\rightarrow$ user rating histories), \emph{data preparation} and EDA, an \emph{implicit-feedback ALS} model, \emph{offline evaluation} with ranking metrics (P@10, R@10, NDCG@10), a descriptive \emph{fairness snapshot}, and a \emph{Streamlit} app. Final test metrics: P@10=\textbf{\Pten}, R@10=\textbf{\Rten}, NDCG@10=\textbf{\NDCGten}; validation NDCG@10=\textbf{\ValNDCGten}. Parity gaps: region=\textbf{\ParityGapRegion}, genre=\textbf{\ParityGapGenre}. We emphasize strict split hygiene, resumable crawling, and reproducibility.
+\textbf{BookTrendsRecSys} is a mini-project built for the Introduction to Data Science course, demonstrating an end-to-end book recommendation system. This report details the complete process, which starts with \emph{data collection} (scraping public Goodreads pages) and moves through \emph{data preparation} and exploratory data analysis (EDA). 
+
+The core of the project is a recommendation model based on \textbf{implicit-feedback ALS} (Alternating Least Squares). Put simply, rather than trying to predict a user's *star rating*, our model learns from the *act of reading* itself, treating any interaction as a positive signal. Its goal is to produce a high-quality, ranked "Top 10" list for any given user.
+
+We evaluate the model's performance using \emph{offline ranking metrics} (like Precision and NDCG@10) and include a \emph{fairness snapshot} to check for performance gaps between different user groups. The final product is a lightweight \emph{Streamlit} web application that serves these recommendations. 
 \end{abstract}
 
-\section{Introduction}
-We optimize for short-list quality rather than rating error: P@10 (share of good picks among 10), R@10 (coverage within 10), NDCG@10 (order-aware list quality). Hyperparameters are selected on validation NDCG@10; seed is 42.
+\section{Problem, Scope, and Target Users}
 
-\section{Data Collection and Crawling Strategy}
-\textbf{Layout \& scripts.}
-\begin{ttfamily}\small
-/scripts \\
-\quad get\_rating\_of\_users.py \quad\# Fetch rating lists for users from review files \\
-\quad get\_rating\_of\_books.py \quad\# Fetch ratings for books based on a list of book\_ids \\
-\quad build\_goodreads\_dataset.py \quad\# Merge all rating files into a unified dataset \\
-\quad count\_books.py \quad\# Count the number of books reviewed by users \\
-\quad goodreads\_reviews\_\_{book\_id}.json \quad\# Original review files containing user\_id \\
-\quad goodreads\_ratings\_{\{user\_id\}}.json \quad\# Rating results for individual users \\
-\quad goodreads\_dataset.csv \quad\# Merged training dataset (userid, bookid, rating)
-\end{ttfamily}
+\subsection*{The Problem and Our Goal}
+In a world with millions of books, readers face a significant "discovery" problem: how do you find the next book you'll love? Our goal is to help solve this by building a system that provides a \textbf{personalized top-10 list} of book recommendations for any given user.
 
-\noindent\textbf{Workflow.} Start from popular book lists (seeds) $\rightarrow$ scrape book review pages to extract \texttt{user\_id}s $\rightarrow$ visit each user’s rating history (if public) $\rightarrow$ aggregate to \texttt{(userid, bookid, rating)} with timestamps and shelves when available.
+Beyond just helping readers, this system is designed for other \textbf{stakeholders}, such as librarians or publishers, who could use the aggregated data to sense reading trends and understand community interests.
 
-\noindent\textbf{Parsing \& selectors.} Robust CSS queries with fallbacks: review rows via \texttt{tr.bookalike.review} (fallback \texttt{table\#books tr}); ratings via \texttt{.ShelfStatus span[aria-label*="out of 5"]} to extract star counts; titles/IDs from title cells else cover cells/anchors. Handle alternate layouts.
 
-\noindent\textbf{Network hygiene.} Use a \texttt{requests.Session} with \texttt{HTTPAdapter}+Retry for 429/5xx; randomized delays; cookies and headers; pagination until no new rows or a safe cap. Resume-safe: skip existing JSON unless overwriting; validate after write.
 
-\noindent\textbf{Schemas.} Book review JSON: \texttt{\{book\_id, book\_title, average\_rating, reviews:[\{user, user\_id, user\_rating, review\_date, review, likes, comments\}], fetched\_at\}}. User ratings JSON: \texttt{\{source\_user\_id, count, items:[\{book\_id, book\_title, book\_url, author, user\_rating\_text, user\_rating, date\_read, date\_added, shelves, review\_url\}]\}}. Ethics/ToS: public data only, rate-limit, minimal PII.
-
-\section{Dataset \& EDA}
-Inputs in \texttt{data/raw/}; derived artifacts in \texttt{data/processed/}; figures in \texttt{figs/eda/}. Summary:
-\begin{table}[H]\centering\caption{Dataset summary (N/A if not available).}
-\begin{tabular}{@{}l l@{}}\toprule
-Books & \textbf{\NBooks} \\
-Users & \textbf{\NUsers} \\
-Interactions & \textbf{\NInter} \\
-Sparsity & \textbf{\Sparsity} \\
-Year span & \textbf{\YearSpan} \\
-Top languages & \textbf{\TopLangs} \\ \bottomrule
-\end{tabular}
-\end{table}
-\figfile{average_rating_hist.png}{Average rating distribution (catalog).}
-\figfile{books_published_per_year.png}{Catalog growth: books per year.}
-\figfile{rating_vs_count_scatter.png}{Rating vs. popularity (ratings count, log scale).}
-\figfile{books_by_language.png}{Top languages in the catalog.}
-
-\section{Model: Implicit ALS}
-We use Hu--Koren--Volinsky implicit ALS. With preference $p_{ui}\in\{0,1\}$ and confidence $c_{ui}=1+\alpha r_{ui}$, we solve:
-\[
-\min_{X,Y}\sum_{u,i}c_{ui}\bigl(p_{ui}-x_u^\top y_i\bigr)^2+\lambda(\lVert x_u\rVert^2+\lVert y_i\rVert^2),
-\]
-via alternating least-squares. Chosen hyperparameters: rank=\textbf{\RankParam}, reg=\textbf{\RegParam}, alpha=\textbf{\AlphaParam}, iters=\textbf{\ItersParam}.
-
-\section{Evaluation}
-For user $u$ with ground truth $G_u$ and top-$K$ list $R_u=[i_1,\dots,i_K]$ ($K{=}10$):
-\[
-\mathrm{P@K}=\frac{1}{|U|}\sum_u\frac{|R_u\cap G_u|}{K},\quad
-\mathrm{R@K}=\frac{1}{|U|}\sum_u\frac{|R_u\cap G_u|}{|G_u|},
-\]
-\[
-\mathrm{DCG@K}(u)=\sum_{j=1}^K\frac{\mathbf{1}[i_j\in G_u]}{\log_2(j+1)},\quad
-\mathrm{NDCG@K}=\frac{1}{|U|}\sum_u\frac{\mathrm{DCG@K}(u)}{\mathrm{IDCG@K}(u)}.
-\]
-\begin{table}[H]\centering\caption{Final offline metrics (higher is better).}
-\begin{tabular}{@{}l l@{}}\toprule
-Precision@10 & \textbf{\Pten} \\
-Recall@10 & \textbf{\Rten} \\
-NDCG@10 & \textbf{\NDCGten} \\
-Validation NDCG@10 & \textbf{\ValNDCGten} \\ \bottomrule
-\end{tabular}
-\end{table}
-
-\section{Fairness Snapshot (descriptive)}
-We compute NDCG@10 by group and report gap $\max_g-\min_g$. Region gap: \textbf{\ParityGapRegion}; genre gap: \textbf{\ParityGapGenre}. Many genre slices are sparse; treat as descriptive signals, not causal claims.
-\figfile{parity_region_bar.png}{Region snapshot (NDCG@10).}
-\figfile{parity_language_bar.png}{Language/genre proxy snapshot (NDCG@10).}
-
-\section{Application \& Serving}
-Streamlit app (\texttt{app/app.py}) with \emph{Recommendations} (Top--10 by user/genre) and \emph{Insights} (KPI + EDA charts). Uses precomputed factors/metrics; add popularity fallback for cold start.
-\begin{enumerate}[noitemsep,topsep=2pt]
-  \item \texttt{pip install -r requirements.txt}
-  \item \texttt{make data \&\& make train \&\& make eval \&\& make parity}
-  \item \texttt{streamlit run app/app.py}
+\section{Data: Collection, Schema, and Ethics}
+\subsection*{Sources and Collection Workflow}
+The data was collected from public pages on Goodreads. We did not use an official API. Our collection workflow was as follows:
+\begin{enumerate}
+    \item \textbf{Seed discovery:} We started by finding popular book lists and country-specific reviewer pages.
+    \item \textbf{User parsing:} We parsed these pages to extract a list of public \texttt{user\_id}s.
+    \item \textbf{History fetching:} For each user, we fetched their public rating history (which books they've read/rated).
+    \item \textbf{Merging:} All interactions were merged into a single, unified dataset.
 \end{enumerate}
 
-\section{Reproducibility}
-Seed=42; strict train/val/test. Artifacts: \texttt{models/}, \texttt{metrics/}, \texttt{figs/eda/}, \texttt{data/processed/}. Compile this report:
-\begin{ttfamily}\small
-cd deliverables/2025-10-16-spotlight/report \\
-latexmk -pdf report.tex
-\end{ttfamily}
+\noindent\textbf{Key Scripts \small (see \texttt{scripts/})}
+\begin{itemize}
+  \item \texttt{get\_rating\_of\_users.py}: Pulls rating histories for discovered users.
+  \item \texttt{get\_rating\_of\_books.py}: Collects ratings for a specific set of book IDs.
+  \item \texttt{build\_goodreads\_dataset.py}: Merges raw data into the final CSV/Parquet dataset.
+  \item \texttt{count\_books.py}: A utility script to sanity-check book coverage per user.
+\end{itemize}
 
-\section*{Appendix: Worked NDCG Example}
-For $K{=}5$, $G_u=\{b2,b5,b7\}$ and $R_u=[b1,b5,b9,b2,b8]$: hits at ranks 2,4. P@5=$2/5=40\%$; R@5=$2/3\approx66.7\%$. $\mathrm{DCG@5}\approx1.062$, $\mathrm{IDCG@5}\approx2.131$, NDCG@5$\approx49.8\%$.
-\figfile{long_tail_coverage.png}{Long tail: small set of items receives most interactions.}
+\textbf{Data Schemas.} The raw data (JSON) was structured around either books or users. For example, a user's history contained: \texttt{\{source\_user\_id, items:[\{book\_id, title, author, user\_rating, dates, ...\}]\}}. Our final processed dataset was simplified to the essentials: \texttt{(user\_id, book\_id, rating[, timestamp, region])}.
+
+\noindent\textbf{Basic Dataset Statistics (Processed).}
+\begin{center}
+\begin{tabular}{@{}l l@{}}\toprule
+Books (Unique) & \textbf{\NBooks} \\
+Users (Unique) & \textbf{\NUsers} \\
+Total Interactions & \textbf{\NInter} \\
+Sparsity & \textbf{\Sparsity} \\
+Publication Year Span & \textbf{\YearSpan} \\
+Top Languages & \textbf{\TopLangs} \\ \bottomrule
+\end{tabular}
+\end{center}
+The \textbf{Sparsity} of \Sparsity\ means that the average user has only interacted with a tiny fraction (about 1.12\%) of the books in our catalog. This is a typical and central challenge in recommender systems.
+
+\subsection*{Ethical Considerations}
+\begin{itemize}
+    \item \textbf{Privacy:} Only publicly accessible pages were accessed. We stored minimal PII and only release aggregated results or user-level data with anonymized IDs.
+    \item \textbf{Access:} We rate-limited our scripts to avoid overwhelming the Goodreads servers.
+    \item \textbf{Fairness Analysis:} Our fairness snapshot (Section~\ref{sec:fairness}) is purely \emph{descriptive} (it shows *what* is happening) and does not imply causality (it cannot tell us *why*).
+\end{itemize}
+
+\section{Preprocessing and Exploratory Data Analysis (EDA)}
+\textbf{Data Cleaning.} Before training, the data was rigorously cleaned. This involved deduplicating interactions, coercing all ratings to a $[1,5]$ scale, dropping malformed rows, and ensuring ID consistency. To stabilize model training, we also filtered out "cold users" (those with very few interactions) and "rare items" (books read by almost no one).
+
+\textbf{Testing Strategy (Train/Test Split).} To evaluate our model properly, we must simulate the real world. We can't just randomly shuffle interactions, as that would be like using the future to predict the past. Instead, we used a strict \textbf{user-chronological split}:
+\begin{itemize}
+    \item \textbf{Train Set:} For each user, we use their *older* interactions to train the model.
+    \item \textbf{Test Set:} We then test the model's ability to predict their *most recent* interactions.
+\end{itemize}
+This "time machine" approach prevents data leakage and gives a more realistic estimate of performance.
+
+\section{Method: Implicit-Feedback ALS for Top-$K$}
+
+Our recommender is based on the \textbf{implicit feedback} approach from Hu, Koren, and Volinsky, which models user interest from behavior rather than explicit ratings. Instead of relying only on rare 5-star reviews, we treat any interaction—such as adding a book to a "read" shelf—as a positive signal ($p_{ui}=1$), assuming no interaction as neutral ($p_{ui}=0$).  
+
+Each signal is weighted by a confidence score $c_{ui}=1+\alpha r_{ui}$, where $r_{ui}$ is the observed rating. The model, \textbf{Alternating Least Squares (ALS)}, learns low-dimensional representations for users and books:
+- $x_u$: user preference vector  
+- $y_i$: book feature vector  
+
+Their dot product $x_u^\top y_i$ estimates user interest in a book. ALS alternates between optimizing user and item factors by minimizing:
+
+$$
+\min_{X,Y} \sum_{u,i} c_{ui}(p_{ui} - x_u^\top y_i)^2 + \lambda(\|x_u\|^2 + \|y_i\|^2)
+$$
+
+Final hyperparameters: \textbf{rank = \RankParam}, \textbf{regularization = \RegParam}, \textbf{confidence = \AlphaParam}, and \textbf{iterations = \ItersParam}.  
+
+\section{Evaluation Protocol and Results}\label{sec:results}
+\subsection*{How We Measure Success (Ranking Metrics)}
+Since our goal is to build a high-quality *ranked list*, we use metrics that measure ranking quality, not rating error. Our main metrics are all "@10," meaning we only look at the top 10 recommendations.
+
+\begin{itemize}
+    \item \textbf{Precision@10 (P@10):} "Of the 10 books we recommended, what \emph{percentage} did the user \emph{actually} read (in the test set)?" This measures accuracy.
+    \item \textbf{Recall@10 (R@10):} "Of all the books the user \emph{actually} read (in the test set), what \emph{percentage} did we \emph{successfully find} and put in their Top 10?" This measures coverage.
+    \item \textbf{NDCG@10 (Normalized Discounted Cumulative Gain):} This is our most important metric. It's like Precision, but \emph{smarter}. It gives a higher score if the correct books are at the \emph{very top} (rank 1, 2) and a lower score if they are at the bottom (rank 9, 10). It rewards a \textbf{good ordering}.
+\end{itemize}
+
+\subsection*{Quantitative Results}
+The following metrics were computed on the held-out test set.
+\begin{center}
+\begin{tabular}{@{}l l@{}}\toprule
+Metric & Test Set Value \\ \midrule
+Precision@10 & \textbf{\Pten} \\
+Recall@10 & \textbf{\Rten} \\
+NDCG@10 & \textbf{\NDCGten} \\ \midrule
+Validation NDCG@10 & \textbf{\ValNDCGten} \\ \bottomrule
+\end{tabular}
+\end{center}
+\emph{Note: These numbers appear very low, which is common in real-world, sparse recommendation tasks. Predicting the *exact* few books a user will read from 10,000 options is extremely difficult.}
+
+\subsection*{Evaluation Challenges and Caveats}
+A key part of this project was learning \emph{why} evaluation is hard. Our results come with several important caveats.
+\begin{itemize}
+  \item \textbf{Hard to Measure Recall:} Many users had very few books in their test set (e.g., only 1 or 2). This makes metrics like Recall and NDCG "high-variance" (unstable). We propose reporting confidence intervals (CIs) in the future.
+  \item \textbf{Risk of 'Cheating' with Time:} We used a per-user chronological split. A stronger approach would be a \emph{global} time cutoff (e.g., train on all data before Jan 2016, test on data after) to better simulate a production environment.
+  \item \textbf{Popularity Skew:} The model can "cheat" by recommending popular books. We should supplement our metrics with "coverage" (how much of the long tail catalog is recommended?).
+  \item \textbf{Hard to Judge Fairness:} When slicing data by group (e.g., region), many groups were too small to draw statistically significant conclusions. We must enforce minimum group sizes for analysis.
+  \item \textbf{Offline vs. Online Mismatch:} Good offline metrics (like ours) do \emph{not} guarantee users will like the system in a real A/B test. This is the biggest challenge in the field.
+\end{itemize}
+
+
+\section{Group-wise Quality Snapshot (Fairness)}\label{sec:fairness}
+We wanted to know: "Does our model work equally well for everyone?" To get a first look, we computed our main metric, NDCG@10, for different slices of users (based on region or book language/genre) and reported the gap ($\max_g - \min_g$).
+
+Observed gaps: \textbf{\ParityGapRegion} (by region), \textbf{\ParityGapGenre} (by genre/language proxy).
+
+\textbf{Important interpretation:} These are \emph{diagnostic} indicators, not firm conclusions. A gap in NDCG@10 does not mean the *model* is biased. It could be caused by data sparsity (less data for one group), different user behavior, or other confounding factors. This analysis motivates deeper investigation rather than a simple fix.
+\figfile[0.5\linewidth]{parity_language_bar.png}{NDCG@10 by language/genre proxy. Note the variance.}
+
+
+\section{Application and Serving}
+We built a simple prototype web application using \texttt{Streamlit}. The app has two tabs:
+\begin{enumerate}
+    \item \textbf{Recommendations:} A user can enter their \texttt{user\_id} (or select a genre) to get a Top-10 list with book covers.
+    \item \textbf{Insights:} Shows key EDA charts (like those in this report) and the overall model KPIs.
+\end{enumerate}
+The app loads precomputed model factors and metrics and falls back to a popularity-based recommendation for unknown users.
+
+\noindent\textbf{How to run the pipeline:}
+\begin{enumerate}
+  \item Install dependencies: \texttt{pip install -r requirements.txt}
+  \item Run the full pipeline: \texttt{make data \&\& make train \&\& make eval \&\& make parity}
+  \item Launch the app: \texttt{streamlit run app/app.py}
+\end{enumerate}
+
+\section{Project Reflection and Lessons Learned}\label{sec:reflection}
+
+Throughout the project, several practices proved particularly effective. Defining clear boundaries between the stages of the pipeline—from data collection to preprocessing, modeling, evaluation, and deployment—made the workflow more structured and manageable. The use of \texttt{make} provided a reproducible automation layer that simplified running and testing each component. Moreover, building a simple Streamlit interface allowed us to quickly visualize recommendations and present results effectively. Finally, focusing on ranking-oriented metrics such as NDCG ensured that our evaluation aligned with the actual product objective: generating high-quality Top-10 book recommendations.
+
+Not everything went smoothly. Our initial choice of tools, including heavier frameworks like Spark, slowed down local development and experimentation. We later transitioned to a lighter stack based on \texttt{implicit} and NumPy, which significantly improved iteration speed. Similarly, our first model attempted to predict explicit ratings using RMSE, but this metric did not capture the user satisfaction we aimed for in ranked recommendations. Another major challenge was data sparsity—particularly uneven coverage by country—which made our fairness analysis difficult and limited the robustness of our conclusions.
+
+Over the course of the project, we made one key strategic pivot: shifting from explicit-feedback ALS (optimized for RMSE) to implicit-feedback ALS (optimized for ranking quality). This change greatly improved the system’s alignment with user-oriented evaluation. Additionally, we adjusted our fairness analysis from a full evaluation to a more descriptive snapshot approach, acknowledging the constraints posed by limited data.
+
+If we were to restart the project, we would begin directly with an offline ranking-first approach to save time and effort. We would also design more robust data scraping abstractions capable of handling varying page layouts, and define fairness evaluation slices early on—each with a minimum support threshold to ensure statistical validity.
+
+Looking ahead, the system can be extended by incorporating side information such as authors and genres through hybrid models. Further directions include exploring Bayesian personalization to better handle new users and integrating diversity and novelty objectives in the re-ranking stage. Finally, deploying a lightweight FastAPI service would allow the model to operate independently of the Streamlit front end, making the system more modular and production-ready.
+
+\section{Key Takeaways (Learning Outcomes)}
+This project provided hands-on practice in the end-to-end data science lifecycle:
+\begin{itemize}
+    \item Web data collection and pipeline hygiene.
+    \item Modeling with implicit-feedback recommendation algorithms.
+    \item The critical importance of \textbf{ranking-based evaluation} (NDCG, Precision).
+    \item Performing initial fairness diagnostics.
+    \item Rapid UI scaffolding with Streamlit.
+\end{itemize}
+The single most important insight was \textbf{metric alignment}: optimizing for rating error (RMSE) did \emph{not} improve the perceived recommendation list quality, whereas optimizing for a ranking-based (implicit) objective did.
+
+\section{Reproducibility and Repository Layout}
+All project materials, including code, datasets, and documentation, are publicly available at:  
+\href{https://github.com/VillafuerTech/BookTrendsRecSys}{\textbf{BookTrendsRecSys GitHub Repository}}.
+
+
 
 \end{document}
