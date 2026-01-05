@@ -1,4 +1,5 @@
 """Streamlit interface for BookTrends recommender."""
+
 from __future__ import annotations
 
 import json
@@ -192,7 +193,9 @@ def load_lookup_tables() -> tuple[pd.DataFrame, pd.DataFrame]:
 def load_model() -> tuple[np.ndarray, np.ndarray, dict[str, float]]:
     model_path = utils.MODELS / "als.pkl"
     if not model_path.exists():
-        raise FileNotFoundError("Model artifacts missing. Run `make train` then `make eval`.")
+        raise FileNotFoundError(
+            "Model artifacts missing. Run `make train` then `make eval`."
+        )
     with open(model_path, "rb") as f:
         meta = pickle.load(f)
     user_factors = np.load(utils.MODELS / "user_factors.npy")
@@ -223,7 +226,10 @@ def recommend(
     if not books.empty:
         enriched = recs.join(books, on="item_idx", how="left")
         if "title" in enriched.columns:
-            enriched = enriched[enriched["title"].notna() & (enriched["title"].astype(str).str.strip() != "")]
+            enriched = enriched[
+                enriched["title"].notna()
+                & (enriched["title"].astype(str).str.strip() != "")
+            ]
         if genre and genre != "All" and "primary_genre" in enriched.columns:
             enriched = enriched[enriched["primary_genre"].fillna("Unknown") == genre]
         recs = enriched.reset_index(drop=True)
@@ -239,7 +245,9 @@ def render_recommendations_tab(
     users_df: pd.DataFrame,
 ):
     st.subheader("Get book ideas")
-    st.caption("Pick a user or a book and (optionally) a genre. We’ll show a short list you can skim quickly.")
+    st.caption(
+        "Pick a user or a book and (optionally) a genre. We’ll show a short list you can skim quickly."
+    )
 
     if user_factors.size == 0 or item_factors.size == 0:
         st.info("Recommendations are unavailable because model files are missing.")
@@ -259,12 +267,23 @@ def render_recommendations_tab(
         genre_options = ["All"]
         if not books_df.empty and "primary_genre" in books_df.columns:
             genre_options += sorted(
-                {g for g in books_df["primary_genre"].dropna().astype(str).tolist() if g.strip()}
+                {
+                    g
+                    for g in books_df["primary_genre"].dropna().astype(str).tolist()
+                    if g.strip()
+                }
             )
         genre_choice = st.selectbox("Genre filter", genre_options)
 
     if st.button("Show recommendations", type="primary"):
-        results = recommend(int(user_input), user_factors, item_factors, books_df, users_df, genre_choice)
+        results = recommend(
+            int(user_input),
+            user_factors,
+            item_factors,
+            books_df,
+            users_df,
+            genre_choice,
+        )
         if results.empty:
             st.info("No recommendations available for the selected filters.")
         else:
@@ -405,7 +424,9 @@ def render_insights_tab():
 
     st.divider()
     st.markdown("### Fairness snapshot")
-    st.caption("We compare quality across groups (e.g., regions or genres). Smaller gap ≈ more similar quality.")
+    st.caption(
+        "We compare quality across groups (e.g., regions or genres). Smaller gap ≈ more similar quality."
+    )
     df_parity, gap_txt = parity_gap_from_csv(metric_name="ndcg10")
     if not df_parity.empty:
         st.write(f"**Gap (NDCG@10):** {gap_txt}")
@@ -437,4 +458,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
